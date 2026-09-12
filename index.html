@@ -1,4 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>GranaCerta</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GranaCerta">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-192.png">
 <style>
 :root{
   --bg:#0d1117; --card:#161b22; --card2:#1c2330; --line:#2a3140;
@@ -11,7 +24,7 @@
   --r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-y:none}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-size:16px;line-height:1.45;padding-bottom:28px}
 h1{font-size:1.15rem}h2{font-size:1rem;color:var(--tx2);font-weight:600;margin:18px 0 8px}
@@ -72,6 +85,8 @@ button,.btn{font:inherit;border:none;border-radius:12px;padding:12px 16px;font-w
 input,select,textarea{font:inherit;width:100%;background:var(--card2);border:1px solid var(--line);
   border-radius:10px;padding:11px 12px;color:var(--tx);margin-top:4px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green)}
+/* menos de 16px faz o iPhone dar zoom sozinho ao tocar no campo */
+input,select,textarea{font-size:16px}
 label{display:block;font-size:.82rem;color:var(--tx2);margin-top:12px;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .check{display:flex;align-items:center;gap:10px;margin-top:14px}
@@ -121,19 +136,12 @@ nav.tabs .ico{font-size:1.2rem;line-height:1}
 img.receipt-full{width:100%;border-radius:12px;margin-top:10px}
 .muted{color:var(--tx2);font-size:.85rem}
 .small{font-size:.8rem;color:var(--tx3)}
+/* NÃO usar display:none aqui: o Safari do iPhone ignora .click() em input escondido assim */
+.fpick{position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;padding:0;border:0}
 a{color:var(--blue)}
 </style>
-<script>(function(){
-  var add=function(rel,href,extra){var l=document.createElement('link');l.rel=rel;l.href=href;
-    if(extra)Object.keys(extra).forEach(function(k){l.setAttribute(k,extra[k])});document.head.appendChild(l)};
-  add('manifest','data:application/manifest+json,'+encodeURIComponent("{\"name\":\"GranaCerta\",\"short_name\":\"GranaCerta\",\"start_url\":\".\",\"scope\":\".\",\"display\":\"standalone\",\"background_color\":\"#0d1117\",\"theme_color\":\"#0d1117\",\"icons\":[{\"src\":\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230d1117'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E\",\"sizes\":\"192x192\",\"type\":\"image/svg+xml\",\"purpose\":\"any\"}]}"));
-  add('apple-touch-icon',"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%230d1117'/%3E%3Ctext x='90' y='122' font-size='104' text-anchor='middle'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E");
-  [['apple-mobile-web-app-capable','yes'],['mobile-web-app-capable','yes'],
-   ['apple-mobile-web-app-status-bar-style','black-translucent'],
-   ['apple-mobile-web-app-title','GranaCerta'],['theme-color','#0d1117']].forEach(function(p){
-    var m=document.createElement('meta');m.name=p[0];m.content=p[1];document.head.appendChild(m)});
-})();</script>
-
+</head>
+<body>
 <header class="top">
   <div class="hdr-row">
     <div class="logo">💰 Grana<span>Certa</span></div>
@@ -217,7 +225,6 @@ a{color:var(--blue)}
 <div class="screen" id="scr-gastos">
   <button class="btn-primary" onclick="openExpenseModal()">+ Novo gasto</button>
   <button class="btn-ghost" style="width:100%;margin-top:8px" onclick="openImportModal()">📥 Importar extrato do banco</button>
-  <input type="file" id="stmt-file" accept=".csv,.json,.pdf,text/csv,application/json,application/pdf" style="display:none" onchange="stmtPicked(this)">
   <h2 id="exp-month-title">Este mês</h2>
   <div class="tiles">
     <div class="tile"><div class="t-label">Total do mês</div><div class="t-val" id="exp-total">—</div></div>
@@ -236,8 +243,7 @@ a{color:var(--blue)}
 
 <!-- ============ RECIBOS ============ -->
 <div class="screen" id="scr-recibos">
-  <input type="file" id="receipt-file" accept="image/*" capture="environment" style="display:none" onchange="receiptPicked(this)">
-  <button class="btn-primary" onclick="document.getElementById('receipt-file').click()">📷 Fotografar recibo</button>
+  <button class="btn-primary" onclick="pickFile('receipt-file')">📷 Fotografar recibo</button>
   <div class="fab-note">A foto original fica guardada no aparelho, organizada por ano fiscal.</div>
   <input id="receipt-search" placeholder="Buscar: shell, combustível, agosto…" style="margin-top:12px" oninput="renderReceipts()">
   <div class="seg" id="rc-fy-seg"></div>
@@ -264,7 +270,6 @@ a{color:var(--blue)}
       <button class="btn-ghost btn-sm" onclick="openTripModal()">+ Viagem avulsa</button>
       <button class="btn-ghost btn-sm" onclick="exportTaxCSV()">CSV contador</button>
     </div>
-    <input type="file" id="odo-file" accept="image/*" capture="environment" style="display:none" onchange="odoPicked(this)">
   </div>
 
   <h2>Balanço anual</h2>
@@ -340,7 +345,7 @@ a{color:var(--blue)}
   <h2>Transferências internas</h2>
   <div class="card">
     <p class="muted">Nomes que o app reconhece como conta tua (não vira gasto). Uma por linha.</p>
-    <textarea id="own-acc" rows="4" style="font-family:monospace;font-size:.85rem"></textarea>
+    <textarea id="own-acc" rows="4" style="font-family:monospace;font-size:16px"></textarea>
     <button class="btn-primary" style="margin-top:10px" onclick="saveOwnAccounts()">Salvar</button>
     <div class="small" id="own-flow" style="margin-top:8px"></div>
   </div>
@@ -364,9 +369,8 @@ a{color:var(--blue)}
     </div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="exportForClaude()">🤖 Copiar resumo p/ Claude</button>
-      <button class="btn-ghost" onclick="document.getElementById('import-file').click()">📥 Restaurar</button>
+      <button class="btn-ghost" onclick="pickFile('import-file')">📥 Restaurar</button>
     </div>
-    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
     <div class="btn-row">
       <button class="btn-ghost" onclick="exportFiscalCSV()">🧾 CSV recibos (ano fiscal)</button>
       <button class="btn-ghost" onclick="openSnapshotsModal()">🛡️ Proteção dos dados</button>
@@ -375,6 +379,13 @@ a{color:var(--blue)}
   <p class="small" style="text-align:center;margin:14px 0">GranaCerta v1.4 — motor determinístico com <a onclick="openSelfTest()" style="text-decoration:underline">🧪 conferir o motor</a> · Feito para o Magnata. 🔧</p>
 </div>
 
+
+
+<!-- inputs de ficheiro: filhos diretos do body. Dentro de .screen{display:none} o iOS ignora o .click(). -->
+<input type="file" id="stmt-file" class="fpick" onchange="stmtPicked(this)">
+<input type="file" id="receipt-file" class="fpick" accept="image/*" onchange="receiptPicked(this)">
+<input type="file" id="odo-file" class="fpick" accept="image/*" onchange="odoPicked(this)">
+<input type="file" id="import-file" class="fpick" onchange="importBackup(this)">
 
 <!-- ============ MODAIS ============ -->
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
@@ -2422,6 +2433,20 @@ function guessCat(text) {
     if (kws.some(k => t.includes(k))) return cat;
   return 'outras';
 }
+
+// Abrir o seletor de ficheiro no iPhone é chato: o Safari só deixa durante o toque
+// e ignora input escondido com display:none. Tudo passa por aqui.
+function pickFile(id) {
+  const el = document.getElementById(id);
+  if (!el) { toast('Não achei o campo de arquivo'); return false; }
+  el.value = '';
+  try { el.click(); return true; }
+  catch (e) {
+    toast('O navegador bloqueou o seletor. Toca de novo.');
+    return false;
+  }
+}
+
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
@@ -2506,13 +2531,44 @@ function engineState() {
 
 // ---------- navegação ----------
 const NAV_IDX = { hoje: 1, contas: 2, gastos: 3, recibos: 4, mais: 5 };
-function go(name, btn) {
+let TELA = 'hoje';
+let _voltando = false;   // enquanto o histórico está andando, não empilha de novo
+
+function pintaTela(name, btn) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('scr-' + name).classList.add('active');
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
   (btn || document.querySelector(`nav.tabs button:nth-child(${NAV_IDX[name]})`))?.classList.add('active');
+  TELA = name;
   render();
   window.scrollTo(0, 0);
+}
+
+// Voltar tem que voltar DENTRO do app, não jogar ele pra fora.
+// Cada aba e cada modal viram um passo no histórico.
+function go(name, btn) {
+  if (modalAberto()) { closeModal(); }
+  if (!_voltando && name !== TELA) { try { history.pushState({ gc: 'tela', name }, ''); } catch {} }
+  pintaTela(name, btn);
+}
+
+function modalAberto() { return $('modal-bg')?.classList.contains('open'); }
+
+function initHistorico() {
+  try { history.replaceState({ gc: 'tela', name: 'hoje' }, ''); } catch {}
+  window.addEventListener('popstate', ev => {
+    _voltando = true;
+    try {
+      if (modalAberto()) { fechaModalDireto(); }
+      else {
+        const st = ev.state;
+        const alvo = (st && st.gc === 'tela' && NAV_IDX[st.name]) ? st.name : 'hoje';
+        if (alvo !== TELA) pintaTela(alvo);
+        // já estava no Hoje sem modal: deixa o histórico seguir e sair do app
+        else if (alvo === 'hoje' && !st) { /* nada */ }
+      }
+    } finally { _voltando = false; }
+  });
 }
 
 // primeira vez no aparelho: como instalar e como não perder os dados
@@ -3728,8 +3784,18 @@ async function saveFund(kind) {
 }
 
 // ---------- modais ----------
-function openModal(html) { $('modal-body').innerHTML = html; $('modal-bg').classList.add('open'); }
-function closeModal() { $('modal-bg').classList.remove('open'); $('modal-body').innerHTML = ''; }
+function fechaModalDireto() { $('modal-bg').classList.remove('open'); $('modal-body').innerHTML = ''; }
+function openModal(html) {
+  const jaTinha = modalAberto();
+  $('modal-body').innerHTML = html; $('modal-bg').classList.add('open');
+  // o modal vira um passo do histórico: voltar fecha o modal em vez de sair do app
+  if (!jaTinha && !_voltando) { try { history.pushState({ gc: 'modal' }, ''); } catch {} }
+}
+function closeModal() {
+  if (!modalAberto()) return;
+  if (!_voltando && history.state && history.state.gc === 'modal') { history.back(); return; }
+  fechaModalDireto();
+}
 
 function openBillModal(id) {
   window._billForeignSync = null;
@@ -4131,7 +4197,7 @@ function openImportModal() {
       <div class="row"><span class="k">📊 CSV</span><span class="v pos">lido aqui</span></div>
       <div class="row"><span class="k">🧾 JSON</span><span class="v pos">lido aqui</span></div>
     </div>
-    <button class="btn-primary" style="margin-top:12px" onclick="document.getElementById('stmt-file').click()">Escolher arquivo</button>
+    <button class="btn-primary" style="margin-top:12px" onclick="pickFile('stmt-file')">Escolher arquivo</button>
     <div class="card" style="margin-top:14px;background:var(--card2)">
       <b>O que ele faz com o extrato</b>
       <div class="small" style="margin-top:6px">
@@ -4168,7 +4234,7 @@ async function stmtPicked(input) {
           📄 <b>É um resumo/fatura</b>, não o extrato de transações. No CommBank procura "Transaction Summary" ou "Statement".<br><br>
           🔒 <b>PDF protegido de um jeito que não abri</b> — tenta exportar em CSV.</div>
         </div>
-        ${hasAI() ? '<button class="btn-primary" style="margin-top:12px" onclick="closeModal();document.getElementById(\'stmt-file\').click()">Tentar com a IA</button>' : ''}
+        ${hasAI() ? '<button class="btn-primary" style="margin-top:12px" onclick="closeModal();pickFile(\'stmt-file\')">Tentar com a IA</button>' : ''}
         <div class="btn-row"><button class="btn-ghost btn-sm" onclick="closeModal();openImportModal()">Escolher outro arquivo</button></div>`);
     } catch (e) {
       return openModal(`<h1>⚠️ Erro ao ler o PDF</h1>
@@ -4328,7 +4394,7 @@ function openOdoModal(withPhoto) {
   openModal(`<h1>Odômetro</h1>
     <p class="muted">Tira foto do painel e digita a quilometragem total do carro. Eu calculo os km rodados entre uma leitura e outra e aplico teus <b>${workPct}% de uso de trabalho</b> na dedução.</p>
     ${url ? `<img class="receipt-full" src="${url}" style="max-height:26vh;object-fit:contain;background:#000">` : `
-    <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="document.getElementById('odo-file').click()">📷 Foto do painel (opcional)</button>`}
+    <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="pickFile('odo-file')">📷 Foto do painel (opcional)</button>`}
     <div class="grid2">
       <div><label>Data</label><input id="m-date" type="date" value="${todayISO()}"></div>
       <div><label>Odômetro (km total)</label><input id="m-reading" type="number" inputmode="numeric" placeholder="150890"></div>
@@ -5635,18 +5701,11 @@ function openCloseModal(month) {
       setTimeout(() => { if (!S.profile) return; }, 100);
     } catch (e) { console.error('seed', e); }
   }
+  initHistorico();
   render();
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    try {
-      const swCode = `const C='granacerta-v2';
-self.addEventListener('install',e=>{self.skipWaiting()});
-self.addEventListener('activate',e=>{self.clients.claim()});
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;
- e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(C).then(x=>x.put(e.request,c));return r})
- .catch(()=>caches.match(e.request).then(r=>r||caches.match('./'))))});`;
-      const url = URL.createObjectURL(new Blob([swCode], { type: 'text/javascript' }));
-      navigator.serviceWorker.register(url).catch(() => {});
-    } catch {}
+    // hospedado: usa o sw.js do lado (o único que pega escopo e faz o app abrir offline)
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
   if (navigator.storage?.persist) navigator.storage.persist();
   // health check: banco encolheu sozinho? não segue em frente calado.
@@ -5667,3 +5726,5 @@ self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;
 })();
 
 </script>
+</body>
+</html>
