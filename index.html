@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>GranaCerta</title>
+<title>Magnata Finanças</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GranaCerta">
+<meta name="apple-mobile-web-app-title" content="Magnata Finanças">
 <meta name="theme-color" content="#0d1117">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-180.png">
@@ -132,6 +132,50 @@ nav.tabs .ico{font-size:1.2rem;line-height:1}
   z-index:50;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.show{opacity:1}
 .sim-result{margin-top:12px;padding:12px;border-radius:12px;background:var(--card2);display:none}
+/* ---- PAINEL: a conta de padeiro, 4 linhas numeradas ---- */
+.pn-topo{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:12px}
+.pn-topo-l{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);font-weight:700}
+.pn-topo-v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums}
+.pn-l{display:flex;align-items:center;gap:11px;padding:11px 2px;border-top:1px solid rgba(255,255,255,.07);text-align:left}
+.pn-l.clic{cursor:pointer}
+.pn-l.clic:active{background:rgba(255,255,255,.04)}
+.pn-n{width:21px;height:21px;border-radius:50%;background:rgba(255,255,255,.09);font-size:.66rem;font-weight:800;
+  display:grid;place-items:center;color:var(--tx2);flex-shrink:0}
+.pn-txt{flex:1;min-width:0;display:block}
+.pn-t1{display:block;font-size:.92rem;font-weight:600;line-height:1.25}
+.pn-t2{display:block;font-size:.75rem;color:var(--tx2);margin-top:2px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pn-v{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:1.02rem}
+.pn-l.fim{border-top:2px solid rgba(255,255,255,.2);padding-top:15px;margin-top:2px}
+.pn-l.fim .pn-n{background:var(--green);color:#06210d}
+.pn-l.fim .pn-t1{font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.pn-l.fim .pn-v{font-size:1.85rem;letter-spacing:-1px}
+.pn-conselho{display:flex;gap:9px;align-items:flex-start;background:var(--blue-dim);border:1px solid #244b73;
+  border-radius:11px;padding:10px 11px;margin-top:12px;text-align:left;font-size:.8rem;line-height:1.4}
+.pn-alerta{display:flex;gap:9px;align-items:flex-start;background:var(--amber-dim);border:1px solid #5a4a1a;
+  border-radius:11px;padding:10px 11px;margin-top:12px;text-align:left;font-size:.8rem;line-height:1.4}
+.pn-alerta.r{background:var(--red-dim);border-color:#6b2a2a}
+/* ---- AGENDA dia a dia ---- */
+.ag-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.ag-d{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.ag-d:first-of-type{border-top:0}
+.ag-dia{width:78px;flex-shrink:0;font-size:.74rem;color:var(--tx2);line-height:1.25;padding-top:3px;font-weight:600}
+.ag-dia b{display:block;color:var(--tx);font-size:.82rem;text-transform:capitalize;font-weight:700}
+.ag-dia.hoje b{color:var(--green)}
+.ag-dia.amanha b{color:var(--amber)}
+.ag-itens{flex:1;min-width:0}
+.ag-i{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:3px 0;font-size:.88rem}
+.ag-i .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-i .vl{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ag-i.pg .nm{color:var(--tx3);text-decoration:line-through}
+.ag-i.pg .vl{color:var(--green);text-decoration:none}
+.ag-vazio{color:var(--tx3);font-size:.82rem;padding:4px 0}
+.bv h1{font-size:1.25rem;margin-bottom:4px}
+.bv-p{display:flex;gap:9px;align-items:flex-start;font-size:.87rem;padding:5px 0;line-height:1.4}
+.bv-p b{color:var(--green)}
+.ag-tot{display:flex;justify-content:space-between;border-top:2px solid var(--line);margin-top:8px;padding-top:9px;
+  font-size:.9rem;font-weight:700}
+
 .warn-box{background:var(--amber-dim);border:1px solid #5a4a1a;border-radius:12px;padding:10px 12px;font-size:.85rem;margin-bottom:12px}
 img.receipt-full{width:100%;border-radius:12px;margin-top:10px}
 .muted{color:var(--tx2);font-size:.85rem}
@@ -144,7 +188,7 @@ a{color:var(--blue)}
 <body>
 <header class="top">
   <div class="hdr-row">
-    <div class="logo">💰 Grana<span>Certa</span></div>
+    <div class="logo">💰 Magnata<span> Finanças</span></div>
     <div id="hdr-date" class="small"></div>
   </div>
   <nav class="tabs">
@@ -158,17 +202,18 @@ a{color:var(--blue)}
 
 <!-- ============ HOJE ============ -->
 <div class="screen active" id="scr-hoje">
+  <div class="card" id="boas-vindas" style="display:none"></div>
+
   <div class="hero" id="hero">
-    <div class="label">Pode gastar hoje</div>
-    <div class="big" id="hero-val">—</div>
-    <div class="sub" id="hero-sub"></div>
-    <div class="strip" id="fm-strip" onclick="explainStrip()" style="cursor:pointer">
-      <div><span class="sl">Tenho na conta</span><span class="sv" id="fm-balance">—</span></div>
-      <div><span class="sl" id="sl-committed">− Contas</span><span class="sv" id="fm-committed" style="color:var(--red)">—</span></div>
-      <div><span class="sl">= Sobra</span><span class="sv" id="fm-free">—</span></div>
+    <div class="pn-topo">
+      <span class="pn-topo-l">Tenho na conta agora</span>
+      <span class="pn-topo-v" id="pn-saldo">—</span>
     </div>
-    <div class="small" id="fm-explain" style="margin-top:8px;opacity:.85"></div>
+    <div id="pn-linhas"></div>
+    <div id="pn-conselho"></div>
   </div>
+
+  <div class="card" id="agenda-card" style="display:none"></div>
 
   <div class="quick">
     <input id="quick-exp" onkeydown="if(event.key===&#39;Enter&#39;)quickSubmit()" placeholder='Gastei 85 no posto… ou pergunta' inputmode="text">
@@ -376,7 +421,7 @@ a{color:var(--blue)}
       <button class="btn-ghost" onclick="openSnapshotsModal()">🛡️ Proteção dos dados</button>
     </div>
   </div>
-  <p class="small" style="text-align:center;margin:14px 0">GranaCerta v1.4 — motor determinístico com <a onclick="openSelfTest()" style="text-decoration:underline">🧪 conferir o motor</a> · Feito para o Magnata. 🔧</p>
+  <p class="small" style="text-align:center;margin:14px 0">Magnata Finanças v2.0 — motor determinístico com <a onclick="openSelfTest()" style="text-decoration:underline">🧪 conferir o motor</a> · Feito para o Magnata. 🔧</p>
 </div>
 
 
@@ -1886,6 +1931,161 @@ const Engine = (() => {
       worst: bad.length ? bad[0].color : 'green' };
   }
 
+
+  // ========================================================================
+  // PAINEL — a conta de padeiro da tela inicial, em 4 linhas numeradas.
+  // Regra: NENHUM número aparece no app sem estar somado aqui.
+  //   1 entrou  −  2 pagar até o salário  −  3 guardar obrigatório  =  4 sobra
+  // O conselho da escada fica FORA da conta (é escolha, não obrigação).
+  // ========================================================================
+
+  // O pagamento anterior (o último que já caiu ou cai hoje)
+  function lastPayday(anchorDateStr, frequency, todayStr) {
+    if (!anchorDateStr) return null;
+    const prox = nextPayday(anchorDateStr, frequency, todayStr);
+    const step = frequency === 'monthly' ? null : (frequency === 'weekly' ? 7 : 14);
+    if (step) return iso(addDays(prox, -step));
+    const d = toDate(prox);
+    return iso(new Date(d.getFullYear(), d.getMonth() - 1, d.getDate()));
+  }
+
+  // Uma ocorrência já foi paga? Fica gravado no paidLog da conta.
+  function ocorrenciaPaga(bill, dueStr) {
+    return ((bill && bill.paidLog) || []).find(p => p.due === dueStr) || null;
+  }
+
+  // LINHA 1 — o salário caiu ou não? Responde a pergunta sem ele ter que abrir o banco.
+  function entrou(state, todayStr) {
+    const freq = (state.income && state.income.frequency) || 'weekly';
+    const anchor = state.income && state.income.nextPayday;
+    const desde = lastPayday(anchor, freq, todayStr);
+    const esperado = round2((state.income && state.income.amount) || 0);
+    if (!desde) return { total: 0, itens: [], caiu: false, desde: null, esperado, dif: 0, semAncora: true };
+    const itens = (state.incomes || [])
+      .filter(i => !i.internal && i.date && daysBetween(desde, i.date) >= 0 && daysBetween(i.date, todayStr) >= 0)
+      .map(i => ({ date: i.date, amount: round2(i.amount), source: i.source || i.desc || 'entrada' }))
+      .sort((a, b) => a.date < b.date ? 1 : -1);
+    const total = round2(itens.reduce((s, i) => s + i.amount, 0));
+    // "caiu" = entrou pelo menos 80% do esperado; menos que isso ainda é suspeito
+    const caiu = esperado > 0 ? total >= esperado * 0.8 : total > 0;
+    return { total, itens, caiu, desde, esperado, dif: round2(total - esperado), semAncora: false,
+             atrasado: !caiu && daysBetween(desde, todayStr) >= 1 };
+  }
+
+  // LINHA 3 — o que TEM que sair pro ANZ antes do próximo salário.
+  // Só o obrigatório: contas que o cofre paga (ATO, escola, rego). A escada é conselho.
+  function guardarAgora(state, todayStr) {
+    const freq = (state.income && state.income.frequency) || 'weekly';
+    const prov = provisionPlan(state.bills || [], todayStr, freq, state.vault, 200,
+      state.income && state.income.nextPayday);
+    const itens = prov.items.filter(p => p.perPay > 0.005);
+    return { total: round2(itens.reduce((s, p) => s + p.perPay, 0)), itens,
+             urgentes: itens.filter(p => p.antesDoPagamento) };
+  }
+
+  function painel(state, todayStr) {
+    const fm = freeMoney(state, todayStr);
+    const ent = entrou(state, todayStr);
+    const gd = guardarAgora(state, todayStr);
+    const pagar = round2(fm.committed + fm.monthReserve);
+    const guardar = round2(Math.max(0, Math.min(gd.total, Math.max(0, fm.balance - pagar))));
+    const sobra = round2(fm.balance - pagar - guardar);
+    const porDia = sobra / Math.max(1, fm.daysToPay);
+    const vs = vaultState(state.vault);
+    const cur = vs.current;
+    // conselho: no máximo 60% do que sobra, e nunca mais do que falta pro marco
+    let conselho = null;
+    if (cur && sobra > 0) {
+      const sug = round2(Math.min(sobra * 0.6, cur.missing));
+      if (sug >= 20) conselho = { icon: cur.icon, nome: cur.name, curto: cur.curto,
+        why: cur.why, sugerir: sug, falta: cur.missing, pct: cur.pct };
+    }
+    return {
+      saldo: round2(fm.balance),
+      ate: fm.nextPayday, dias: fm.daysToPay,
+      linhas: [
+        { n: 1, key: 'entrou',  icon: '💰', label: 'Entrou',  valor: ent.total, sinal: '+' },
+        { n: 2, key: 'pagar',   icon: '🔴', label: 'Pagar',   valor: pagar,     sinal: '−' },
+        { n: 3, key: 'guardar', icon: '🔵', label: 'Guardar', valor: guardar,   sinal: '−' },
+        { n: 4, key: 'sobra',   icon: sobra >= 0 ? '🟢' : '🔴', label: 'Posso gastar', valor: sobra, sinal: '=' },
+      ],
+      entrou: ent, pagar, guardar, guardarPlano: gd, sobra, porDia, conselho,
+      // se o saldo não cobre a provisão, isso NÃO pode sumir da tela calado
+      guardarIdeal: round2(gd.total), guardarFalta: round2(Math.max(0, gd.total - guardar)),
+      // a conta fecha? teste que o próprio app roda no aparelho
+      confere: Math.abs(round2(fm.balance - pagar - guardar) - sobra) < 0.011,
+    };
+  }
+
+  // ========================================================================
+  // AGENDA — dia a dia até o próximo salário. É o que avisa do mercado de
+  // domingo e do aluguel de segunda. ✅ no que o extrato já provou que saiu.
+  // ========================================================================
+  const DIA_SEM = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+
+  function agenda(state, todayStr, diasForcados) {
+    const freq = (state.income && state.income.frequency) || 'weekly';
+    const pay = (state.income && state.income.nextPayday)
+      ? nextPayday(state.income.nextPayday, freq, todayStr) : null;
+    const horizon = diasForcados != null ? diasForcados
+      : (pay ? Math.max(1, daysBetween(todayStr, pay)) : 7);
+
+    // vencidas: nextDue já passou e ninguém baixou. upcomingBills pula essas.
+    const vencidas = (state.bills || [])
+      .filter(b => b.active !== false && b.nextDue && daysBetween(todayStr, b.nextDue) < 0
+                   && !ocorrenciaPaga(b, b.nextDue))
+      .map(b => ({ id: b.id, name: b.name, amount: round2(b.amount), due: b.nextDue,
+                   atraso: -daysBetween(todayStr, b.nextDue), doCofre: isVaultBill(b) }))
+      .sort((a, b) => a.due < b.due ? -1 : 1);
+
+    const occ = upcomingBills(state.bills || [], todayStr, horizon);
+    const porDia = new Map();
+    // Conta paga NÃO PODE SUMIR. Depois que o extrato marca ✅ o nextDue anda pra
+    // frente e a ocorrência paga sairia da janela — ele reclamou exatamente disso
+    // ("já paguei o ATO e não está discriminado"). Então trago de volta do paidLog.
+    const desde = iso(addDays(todayStr, -7));
+    const ate = iso(addDays(todayStr, horizon));
+    const vistos = new Set(occ.map(o => o.id + '|' + o.due));
+    const pagasRecentes = [];
+    for (const b of (state.bills || [])) {
+      for (const pg of (b.paidLog || [])) {
+        if (!pg.due || daysBetween(desde, pg.due) < 0 || daysBetween(pg.due, ate) < 0) continue;
+        if (vistos.has(b.id + '|' + pg.due)) continue;
+        vistos.add(b.id + '|' + pg.due);
+        pagasRecentes.push({ ...b, due: pg.due, amount: pg.amount != null ? pg.amount : b.amount });
+      }
+    }
+    for (const o of occ.concat(pagasRecentes)) {
+      const pago = ocorrenciaPaga(o, o.due);
+      const it = { id: o.id, name: o.name, amount: round2(o.amount), due: o.due,
+        doCofre: isVaultBill(o), essencial: o.essential !== false && o.kind !== 'supérfluo',
+        kind: o.kind || null, moeda: isForeign(o) ? o.currency : null,
+        pago: !!pago, pagoEm: pago ? pago.date : null, pagoPor: pago ? pago.fonte : null };
+      if (!porDia.has(o.due)) porDia.set(o.due, []);
+      porDia.get(o.due).push(it);
+    }
+
+    const dias = [...porDia.keys()].sort().map(d => {
+      const itens = porDia.get(d).sort((a, b) => b.amount - a.amount);
+      const dist = daysBetween(todayStr, d);
+      return { data: d, dist, passado: dist < 0,
+        hoje: dist === 0, amanha: dist === 1,
+        diaSemana: DIA_SEM[toDate(d).getDay()],
+        itens,
+        total: round2(itens.reduce((s, i) => s + i.amount, 0)),
+        falta: round2(itens.filter(i => !i.pago).reduce((s, i) => s + i.amount, 0)) };
+    });
+
+    const todos = dias.flatMap(d => d.itens);
+    return { ate: pay, horizon, dias, vencidas,
+      totalVencido: round2(vencidas.reduce((s, v) => s + v.amount, 0)),
+      total: round2(todos.reduce((s, i) => s + i.amount, 0)),
+      pago: round2(todos.filter(i => i.pago).reduce((s, i) => s + i.amount, 0)),
+      falta: round2(todos.filter(i => !i.pago).reduce((s, i) => s + i.amount, 0)),
+      nPago: todos.filter(i => i.pago).length, nTotal: todos.length,
+      vazio: todos.length === 0 && vencidas.length === 0 };
+  }
+
   return { isVaultBill, isMonthlyBill, cycleDays, paysPerMonth, vaultState, provisionPlan,
     monthlySlice, cycleBills, cascade, vaultWithdrawals, applyVaultMove, PROVISION_MIN,
     ladderState, withdrawCheck, diagnose, xray, DEFAULT_MILESTONES, round2,
@@ -1898,7 +2098,8 @@ const Engine = (() => {
     deductibleRule, odoWorkKm, DEDUCTIBLE_CATS, guessKind, monthlyClose, monthCompare,
     detectRecurring, normMerchant, median, parseStatementText, parseStatementV2, smartBillName, titleCase,
     isInternalTransfer, transferKind, internalFlow, OWN_ACCOUNTS_DEFAULT, interpret,
-    allocateIncome, debtProgress, monthlyEquivalent };
+    allocateIncome, debtProgress, monthlyEquivalent,
+    painel, agenda, entrou, guardarAgora, lastPayday, ocorrenciaPaga, DIA_SEM };
 })();
 
 if (typeof module !== 'undefined') module.exports = Engine;
@@ -2394,7 +2595,7 @@ if (typeof module !== 'undefined') module.exports = PdfText;
 
 </script>
 <script>
-// ================= GranaCerta app =================
+// ================= Magnata Finanças =================
 'use strict';
 
 // ---------- helpers ----------
@@ -2525,6 +2726,7 @@ function engineState() {
     vault: S.vault,
     monthReserve: S.funds?.monthReserve || 0,
     expenses: S.expenses,
+    incomes: S.incomes,          // o painel precisa pra saber se o salário caiu
     budgets: S.budgets,
   };
 }
@@ -2636,32 +2838,16 @@ function renderHoje() {
   const t = todayISO();
   $('hdr-date').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'short', day:'numeric', month:'short' });
   renderTodo();
-  if (!S.profile) return;
+  // App vazio: em vez de questionário, o extrato. Foi a pergunta do saldo que
+  // fez ele digitar o salário achando que era o que tinha na conta.
+  const vazio = !S.profile || (!S.profile.balance && !S.profile.income);
+  $('boas-vindas').style.display = vazio ? 'block' : 'none';
+  $('hero').style.display = vazio ? 'none' : 'block';
+  if (vazio) { renderBoasVindas(); $('agenda-card').style.display = 'none'; return; }
   DG = Engine.diagnose(engineState(), t);      // 🔦 a lupinha, uma vez por render
   const fm = Engine.freeMoney(engineState(), t);
-  const hero = $('hero');
-  hero.classList.toggle('neg', fm.dailyLimit < 0);
-  $('hero-val').textContent = money(Math.max(0, Math.floor(fm.dailyLimit)));
-  const dh = sig('diario');
-  if (dh) {
-    $('hero-val').style.color = CLR[dh.color];
-    $('hero-sub').innerHTML = `${DOT[dh.color]} ${esc(dh.why)}<br>
-      <span style="opacity:.75">por dia até ${fmtDate(fm.nextPayday)} · ${fm.daysToPay} dias</span>
-      ${dh.action ? `<br><a onclick="explain('diario')" style="text-decoration:underline">o que fazer ›</a>` : ''}`;
-  } else {
-    $('hero-sub').textContent = `por dia até o pagamento (${fmtDate(fm.nextPayday)} · ${fm.daysToPay} dias)`;
-  }
-  $('fm-balance').textContent = money(fm.balance);
-  $('fm-committed').textContent = '− ' + money(fm.committed + fm.monthReserve);
-  $('fm-free').textContent = money(fm.free);
-  $('fm-free').className = 'sv ' + (fm.free >= 0 ? 'pos' : 'neg');
-  if ($('sl-committed')) $('sl-committed').textContent = `− Até ${fmtDate(fm.nextPayday)}`;
-  // a conta escrita por extenso, pra não sobrar dúvida do que é cada número
-  const nDue = Engine.upcomingBills(S.bills, t, fm.daysToPay).filter(b => !Engine.isVaultBill(b)).length;
-  if ($('fm-explain')) $('fm-explain').innerHTML =
-    `${money(fm.balance)} na conta − ${money(fm.committed)} de ${nDue} conta${nDue !== 1 ? 's' : ''} que vencem antes de ${fmtDate(fm.nextPayday)}`
-    + (fm.monthReserve > 0 ? ` − ${money(fm.monthReserve)} já separados pras contas do mês` : '')
-    + ` = <b>${money(fm.free)}</b> pra ${fm.daysToPay} dias. <a onclick="event.stopPropagation();explainStrip()" style="text-decoration:underline">detalhe ›</a>`;
+  renderPainel(t);
+  renderAgenda(t);
   // limite separado: quanto do livre pode ser besteira
   const superDue = Engine.upcomingBills(S.bills, t, fm.daysToPay)
     .filter(b => b.kind === 'supérfluo').reduce((s, b) => s + b.amount, 0);
@@ -2685,6 +2871,245 @@ function renderHoje() {
   // contas 7 dias — as do cofre saem marcadas
   const up = Engine.upcomingBills(S.bills, t, 7);
   $('hoje-bills').innerHTML = up.length ? up.map(billRow).join('') : '<div class="empty">Nenhuma conta nos próximos 7 dias 🎉</div>';
+}
+
+// Abertura de app vazio: o extrato manda, o questionário morre.
+function renderBoasVindas() {
+  $('boas-vindas').innerHTML = `<div class="bv">
+    <h1>👋 Bora começar, Magnata</h1>
+    <p class="muted" style="margin-bottom:12px">Sem questionário. Joga o extrato do banco e eu me viro.</p>
+    <button class="btn-primary" style="width:100%;padding:15px;font-size:1rem" onclick="pickFile('stmt-file')">
+      📄 Jogar o extrato do banco</button>
+    <div class="small" style="text-align:center;margin-top:6px">PDF ou CSV · lido aqui dentro, não sai do aparelho</div>
+    <div style="margin-top:14px">
+      <div class="bv-p"><span>✓</span><span>Quanto tens <b>na conta</b> — não preciso te perguntar</span></div>
+      <div class="bv-p"><span>✓</span><span>Quanto entra e <b>que dia cai</b> o teu pagamento</span></div>
+      <div class="bv-p"><span>✓</span><span>Que contas <b>já saíram</b> e quais ainda não</span></div>
+      <div class="bv-p"><span>✓</span><span>As <b>contas fixas</b> que se repetem todo mês</span></div>
+    </div>
+    <div class="small" style="margin-top:10px">Só depois disso eu pergunto o que sobrou — e é pouca coisa.</div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-ghost btn-sm" onclick="pickFile('import-file')">📥 Tenho um backup</button>
+      <button class="btn-ghost btn-sm" onclick="go('mais')">✍️ Prefiro digitar</button>
+    </div>
+  </div>`;
+}
+
+// ============================================================================
+// 🧾 O PAINEL — a conta de padeiro. Quatro linhas numeradas, cada uma um passo.
+// Nenhum número aparece aqui sem estar somado. Linha 4 = 1 − 2 − 3.
+// ============================================================================
+let PN = null;
+function renderPainel(t) {
+  PN = Engine.painel(engineState(), t);
+  const p = PN;
+  $('pn-saldo').textContent = money(p.saldo);
+  const ate = p.ate ? fmtDate(p.ate) : 'o próximo pagamento';
+
+  // linha 1 — o salário caiu? (a pergunta que ele fazia abrindo o banco)
+  const e = p.entrou;
+  let sub1, cor1 = 'var(--tx2)';
+  if (e.semAncora) sub1 = 'não sei quando cai o teu pagamento';
+  else if (!e.caiu && e.atrasado) { sub1 = `🟠 nada desde ${fmtDate(e.desde)} — toca aqui`; cor1 = 'var(--amber)'; }
+  else if (!e.caiu) { sub1 = `🟠 só ${money(e.total)} de ${money(e.esperado)}`; cor1 = 'var(--amber)'; }
+  else sub1 = `✓ caiu ${fmtDate(e.itens[0].date)}${e.itens.length > 1 ? ` +${e.itens.length - 1}` : ''}`;
+
+  // linha 2 — o que vence antes do próximo salário
+  const ag = Engine.agenda(engineState(), t);
+  const nP = ag.dias.reduce((s, d) => s + d.itens.filter(i => !i.pago && !i.doCofre).length, 0);
+  const sub2 = p.pagar > 0 ? `${nP} conta${nP !== 1 ? 's' : ''} até ${ate} — ver quais` : `nada vence até ${ate}`;
+
+  // linha 3 — a provisão obrigatória pro ANZ
+  const curto = n => n.split('—')[0].split('(')[0].trim();
+  const nomes = [...new Set(p.guardarPlano.itens.map(x => curto(x.name)))];
+  const sub3 = nomes.length ? nomes.slice(0, 3).join(', ') + (nomes.length > 3 ? '…' : '') : 'nada a provisionar';
+
+  // linha 4 — o resultado
+  const sub4 = p.sobra >= 0
+    ? `${money(p.porDia)}/dia · ${p.dias} dia${p.dias !== 1 ? 's' : ''} até ${ate}`
+    : `🔴 falta ${money(-p.sobra)} pra fechar até ${ate}`;
+
+  const L = [
+    { n: 1, ic: '💰', tit: 'Entrou', sub: sub1, v: '+ ' + money(e.total), cor: cor1, vcor: 'var(--tx)', act: "explainPainel('entrou')" },
+    { n: 2, ic: '🔴', tit: 'Pagar contas', sub: sub2, v: '− ' + money(p.pagar), cor: 'var(--tx2)', vcor: 'var(--red)', act: "explainPainel('pagar')" },
+    { n: 3, ic: '🔵', tit: 'Guardar no ANZ', sub: sub3, v: '− ' + money(p.guardar), cor: 'var(--tx2)', vcor: 'var(--blue)', act: "explainPainel('guardar')" },
+  ];
+  $('pn-linhas').innerHTML = L.map(l => `
+    <div class="pn-l clic" onclick="${l.act}">
+      <span class="pn-n">${l.n}</span>
+      <span class="pn-txt"><span class="pn-t1">${l.ic} ${l.tit}</span>
+        <span class="pn-t2" style="color:${l.cor}">${l.sub}</span></span>
+      <span class="pn-v" style="color:${l.vcor}">${l.v}</span>
+    </div>`).join('') + `
+    <div class="pn-l fim clic" onclick="explainPainel('sobra')">
+      <span class="pn-n">4</span>
+      <span class="pn-txt"><span class="pn-t1">Posso gastar</span>
+        <span class="pn-t2">${sub4}</span></span>
+      <span class="pn-v" style="color:${p.sobra >= 0 ? 'var(--green)' : 'var(--red)'}">${money(p.sobra)}</span>
+    </div>`;
+
+  // conselho da escada — FORA da conta, porque é escolha e não obrigação.
+  // E o que NÃO cabe no saldo aparece aqui, nunca escondido dentro de uma linha.
+  const c = p.conselho;
+  const avisos = [];
+  if (!e.caiu && !e.semAncora && e.atrasado) avisos.push(
+    `<div class="pn-alerta"><span>🟠</span><span><b>O pagamento não aparece.</b> Desde ${fmtDate(e.desde)} nada entrou.
+      Se caiu e tu não registaste, o extrato acerta em 10 segundos.
+      <a onclick="explainPainel('entrou')" style="text-decoration:underline">resolver ›</a></span></div>`);
+  if (p.guardarFalta > 0.01) avisos.push(
+    `<div class="pn-alerta"><span>🟡</span><span><b>Falta ${money(p.guardarFalta)} de provisão.</b>
+      O ideal era guardar ${money(p.guardarIdeal)} no ANZ, mas o saldo só cobre ${money(p.guardar)}.
+      <a onclick="explainPainel('guardar')" style="text-decoration:underline">ver as contas ›</a></span></div>`);
+  if (p.sobra < 0) avisos.push(
+    `<div class="pn-alerta r"><span>🔴</span><span><b>Não fecha.</b> O saldo não cobre o que vence até ${ate}.
+      <a onclick="explainPainel('sobra')" style="text-decoration:underline">o que fazer ›</a></span></div>`);
+  if (c) avisos.push(
+    `<div class="pn-conselho"><span>💡</span><span><b>Conselho:</b> dos ${money(p.sobra)} que sobram, guarda
+      <b>${money(c.sugerir)}</b> pra ${esc(c.curto || c.nome)} — falta ${money(c.falta)} (${Math.round(c.pct)}% feito).
+      <br><span style="opacity:.72">Não é obrigação. Se não guardares, nada quebra — só demora mais.</span></span></div>`);
+  $('pn-conselho').innerHTML = avisos.join('');
+}
+
+function explainPainel(qual) {
+  const p = PN; if (!p) return;
+  const ate = p.ate ? fmtDate(p.ate) : 'o próximo pagamento';
+  const conta = `<div class="card" style="background:var(--card2);font-variant-numeric:tabular-nums;font-size:.9rem">
+    <div class="row"><span class="k">1 💰 Entrou</span><span class="v">+ ${money(p.entrou.total)}</span></div>
+    <div class="row"><span class="k">2 🔴 Pagar contas</span><span class="v" style="color:var(--red)">− ${money(p.pagar)}</span></div>
+    <div class="row"><span class="k">3 🔵 Guardar no ANZ</span><span class="v" style="color:var(--blue)">− ${money(p.guardar)}</span></div>
+    <div class="row" style="border-top:2px solid var(--line);margin-top:6px;padding-top:8px">
+      <span class="k"><b>4 🟢 Posso gastar</b></span>
+      <span class="v" style="color:${p.sobra >= 0 ? 'var(--green)' : 'var(--red)'};font-size:1.1rem"><b>${money(p.sobra)}</b></span></div>
+  </div>
+  <p class="small">O teu saldo de ${money(p.saldo)} já inclui o que entrou. As linhas 2 e 3 saem dele.</p>`;
+
+  if (qual === 'entrou') {
+    const e = p.entrou;
+    return openModal(`<h1>💰 Entrou</h1>
+      <p class="muted">Tudo que caiu na conta desde o pagamento anterior${e.desde ? ` (${fmtDate(e.desde)})` : ''}.</p>
+      ${e.itens.length ? `<div class="card">${e.itens.map(i =>
+        `<div class="row"><span class="k">${fmtDate(i.date)} · ${esc(i.source)}</span><span class="v">${money(i.amount)}</span></div>`).join('')}</div>`
+        : `<div class="warn-box">🟠 <b>Nada registado desde ${e.desde ? fmtDate(e.desde) : 'o último pagamento'}.</b><br>
+            Ou o pagamento atrasou, ou caiu e ninguém contou pro app.
+            O extrato do banco resolve isso em 10 segundos — ele é a prova.</div>
+           <button class="btn-primary" onclick="closeModal();go('gastos');setTimeout(()=>openImportModal(),350)">📄 Jogar o extrato agora</button>`}
+      <p class="small">Esperado por pagamento: ${money(e.esperado)}${e.dif ? ` · diferença ${money(e.dif)}` : ''}</p>
+      <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+  }
+  if (qual === 'pagar') {
+    const ag = Engine.agenda(engineState(), todayISO());
+    return openModal(`<h1>🔴 Pagar até ${ate}</h1>
+      <p class="muted">Dinheiro que já tem dono. Sai da conta principal antes do próximo pagamento.</p>
+      ${agendaHTML(ag, true)}
+      <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+  }
+  if (qual === 'guardar') {
+    const gi = p.guardarPlano.itens;
+    return openModal(`<h1>🔵 Guardar no ANZ</h1>
+      <p class="muted">Contas grandes que o ANZ paga. Guardas um pedaço por pagamento pra não levar susto no dia.</p>
+      ${gi.length ? `<div class="card">${gi.map(x => `
+        <div style="padding:8px 0;border-top:1px solid var(--line)">
+          <div class="row" style="border:0;padding:0"><span class="k">${esc(x.name)}</span>
+            <span class="v">${money(x.perPay)}<span class="small">/pgto</span></span></div>
+          <div class="small">${money(x.already)} de ${money(x.total)} guardados · vence ${fmtDate(x.due)} · ${x.paysLeft} pagamento${x.paysLeft !== 1 ? 's' : ''} pra juntar
+            ${x.antesDoPagamento ? ' · <b style="color:var(--red)">vence ANTES do próximo salário</b>' : ''}</div>
+          <div class="bar ${x.pct >= 100 ? '' : 'amber'}"><i style="width:${x.pct}%"></i></div>
+        </div>`).join('')}</div>` : '<div class="empty">Nada a provisionar agora 🎉</div>'}
+      ${p.guardarFalta > 0.01 ? `<div class="warn-box">🔴 O ideal era guardar ${money(p.guardarIdeal)}, mas só cabem
+        ${money(p.guardar)} no saldo. <b>Faltam ${money(p.guardarFalta)}.</b> Não escondo isso de ti.</div>` : ''}
+      <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+  }
+  // sobra
+  return openModal(`<h1>${p.sobra >= 0 ? '🟢' : '🔴'} Posso gastar ${money(p.sobra)}</h1>
+    <p class="muted">Como eu cheguei nesse número:</p>${conta}
+    <p class="muted">São ${money(p.porDia)} por dia nos ${p.dias} dia${p.dias !== 1 ? 's' : ''} até ${ate}.</p>
+    ${p.sobra < 0 ? `<div class="warn-box"><b>O que fazer:</b> ou entra dinheiro antes de ${ate},
+      ou alguma conta da linha 2 tem que sair/adiar. Toca na linha 2 pra ver quais são e o que dá pra mexer.</div>` : ''}
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="explainStrip()">🔬 Conta detalhada</button>
+      <button class="btn-ghost" onclick="closeModal()">Fechar</button>
+    </div>`);
+}
+
+// ============================================================================
+// 📅 A AGENDA — dia a dia até o próximo salário. É o que avisa do mercado de
+// domingo e do aluguel de segunda. ✅ no que já saiu de verdade.
+// ============================================================================
+function agendaHTML(ag, semTitulo) {
+  if (ag.vazio) return '<div class="empty">Nada vence até o próximo pagamento 🎉</div>';
+  const linha = i => `<div class="ag-i ${i.pago ? 'pg' : ''}">
+    <span class="nm">${i.pago ? '✅ ' : (i.doCofre ? '🏦 ' : '')}${esc(i.name)}${i.moeda ? ' 🇧🇷' : ''}</span>
+    <span class="vl">${money(i.amount)}</span></div>`;
+  const dias = ag.dias.map(d => `
+    <div class="ag-d">
+      <span class="ag-dia ${d.hoje ? 'hoje' : d.amanha ? 'amanha' : ''}">
+        <b>${d.hoje ? 'Hoje' : d.amanha ? 'Amanhã' : d.passado ? 'Já foi' : d.diaSemana}</b>${fmtDate(d.data)}</span>
+      <span class="ag-itens">${d.itens.map(linha).join('')}</span>
+    </div>`).join('');
+  const venc = ag.vencidas.length ? `
+    <div class="warn-box" style="background:var(--red-dim);border-color:#6b2a2a">
+      🔴 <b>${ag.vencidas.length} conta${ag.vencidas.length !== 1 ? 's' : ''} com data atrasada</b> (${money(ag.totalVencido)}) —
+      ${esc(ag.vencidas.slice(0, 3).map(v => v.name.split('—')[0].trim()).join(', '))}${ag.vencidas.length > 3 ? '…' : ''}.
+      <br>Se já pagaste, o extrato acerta tudo de uma vez.
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-ghost btn-sm" onclick="closeModal();go('gastos');setTimeout(()=>openImportModal(),350)">📄 Jogar o extrato</button>
+        <button class="btn-ghost btn-sm" onclick="openAcertarDatas()">🗓️ Acertar as datas</button>
+      </div>
+    </div>` : '';
+  // O total TEM que bater com a linha 2 do painel. Por isso separo o que sai da
+  // conta principal do que sai do ANZ — senão a tela se contradiz sozinha.
+  const daConta = ag.dias.flatMap(d => d.itens).filter(i => !i.pago && !i.doCofre)
+    .reduce((s, i) => s + i.amount, 0);
+  const doAnz = ag.dias.flatMap(d => d.itens).filter(i => !i.pago && i.doCofre)
+    .reduce((s, i) => s + i.amount, 0);
+  const rodape = `<div class="ag-tot"><span>Sai da tua conta</span>
+      <span style="color:var(--red)">${money(daConta)}</span></div>`
+    + (doAnz > 0 ? `<div class="ag-tot" style="border-top:1px solid var(--line);margin-top:0;padding-top:6px;font-weight:600;font-size:.82rem">
+      <span style="color:var(--tx2)">🏦 Sai do ANZ (já provisionado)</span>
+      <span style="color:var(--blue)">${money(doAnz)}</span></div>` : '')
+    + (ag.pago > 0 ? `<div class="small" style="margin-top:6px">✅ ${money(ag.pago)} em ${ag.nPago} conta${ag.nPago !== 1 ? 's' : ''} o extrato já provou que saiu.</div>` : '');
+  return venc + dias + rodape;
+}
+
+function renderAgenda(t) {
+  const box = $('agenda-card'); if (!box) return;
+  const ag = Engine.agenda(engineState(), t);
+  if (ag.vazio) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = `<div class="ag-h">
+      <h2 style="margin:0">📅 Até ${ag.ate ? fmtDate(ag.ate) : 'o pagamento'}</h2>
+      <a onclick="exportICS()" style="font-size:.78rem">🔔 pro calendário ›</a>
+    </div>` + agendaHTML(ag);
+}
+
+// as datas vieram velhas da gravação: rola cada conta pra próxima ocorrência real
+function openAcertarDatas() {
+  const t = todayISO();
+  const velhas = S.bills.filter(b => b.active !== false && b.nextDue && Engine.daysBetween(t, b.nextDue) < 0
+    && !Engine.ocorrenciaPaga(b, b.nextDue));
+  if (!velhas.length) return toast('Nenhuma data atrasada ✓');
+  openModal(`<h1>🗓️ Acertar as datas</h1>
+    <p class="muted">Estas ${velhas.length} contas ficaram com data velha. Eu empurro cada uma pra próxima data real
+    — <b>sem marcar nada como pago</b> e <b>sem mexer em valor nenhum</b>.</p>
+    <div class="card">${velhas.map(b => {
+      const prox = Engine.billOccurrences({ ...b, active: true, installments: null }, t, Engine.iso(Engine.addDays(t, 400)))[0];
+      return `<div class="row"><span class="k">${esc(b.name)}</span>
+        <span class="v small">${fmtDate(b.nextDue)} → <b>${prox ? fmtDate(prox.due) : 'sem próxima'}</b></span></div>`;
+    }).join('')}</div>
+    <div class="warn-box">Se alguma dessas tu já pagaste, o jeito certo é jogar o extrato — ele marca ✅ com a data real.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Deixa como está</button>
+      <button class="btn-primary" onclick="acertarDatas()">Acertar as ${velhas.length}</button>
+    </div>`);
+}
+async function acertarDatas() {
+  const t = todayISO(); let n = 0;
+  for (const b of S.bills.filter(b => b.active !== false && b.nextDue && Engine.daysBetween(t, b.nextDue) < 0)) {
+    const prox = Engine.billOccurrences({ ...b, active: true, installments: null }, t, Engine.iso(Engine.addDays(t, 400)))[0];
+    if (!prox) { if (b.frequency === 'once') { b.active = false; await put('bills', b); n++; } continue; }
+    b.nextDue = prox.due; await put('bills', b); n++;
+  }
+  await loadState(); closeModal(); render(); toast(`${n} datas acertadas ✓`);
 }
 
 // conta em real: pergunta quanto SAIU de verdade e aprende o câmbio
@@ -4013,8 +4438,21 @@ async function deleteGoal(id) { await del('goals', id); closeModal(); await load
 // o navegador bloqueia download de dentro da página — aí uso o canal oficial.
 // Se nenhum dos dois funcionar, mostro o conteúdo pra copiar: backup NUNCA
 // pode falhar calado, é a única proteção contra o iPhone limpar os dados.
+// Está rodando como app instalado (pelo ícone) e não como aba do Safari?
+function ehAppInstalado() {
+  return !!(window.navigator.standalone || window.matchMedia?.('(display-mode: standalone)')?.matches);
+}
+
 async function download(filename, content, type) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: type || 'application/json' });
+  // Dentro do app instalado no iPhone o <a download> não faz NADA e não dá erro.
+  // Backup não pode falhar calado, então aqui o Partilhar vem primeiro.
+  if (ehAppInstalado()) {
+    try {
+      const f = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f], title: filename }); return true; }
+    } catch (e) { if (String(e?.name) === 'AbortError') { toast('Cancelado'); return false; } }
+  }
   try {
     if (window.claude && typeof window.claude.use === 'function') {
       const dl = await window.claude.use('downloads');
@@ -4068,7 +4506,9 @@ async function importBackup(input) {
   const file = input.files[0]; if (!file) return; input.value = '';
   try {
     const data = JSON.parse(await file.text());
-    if (data.app !== 'granacerta') return toast('Arquivo não é backup do GranaCerta');
+    // aceita os backups antigos: o app mudou de nome, o ficheiro dele não pode virar lixo
+  if (!['granacerta','magnata'].includes(String(data.app||'').toLowerCase()))
+    return toast('Arquivo não parece um backup deste app');
     if (data.profile) await put('kv', { id: 'profile', v: data.profile });
     if (data.funds) await put('kv', { id: 'funds', v: data.funds });
     if (data.budgets) await put('kv', { id: 'budgets', v: data.budgets });
@@ -4099,7 +4539,7 @@ async function exportForClaude() {
   const fm = S.profile ? Engine.freeMoney(engineState(), t) : null;
   const em = Engine.emergencyStatus(S.bills, S.funds.emergency, 3);
   const receipts = await all('receipts');
-  const summary = { gerado: t, app: 'GranaCerta',
+  const summary = { gerado: t, app: 'magnata',
     nota_para_claude: 'Resumo financeiro do Magnata. Os números vêm de cálculo determinístico do app. Analisa hábitos, dá conselhos práticos e diretos em PT-BR.',
     situacao: fm ? { saldo: fm.balance, comprometido_ate_pagamento: fm.committed, realmente_livre: fm.free, limite_diario: +fm.dailyLimit.toFixed(2), proximo_pagamento: fm.nextPayday } : 'perfil não configurado',
     reserva_mae: { saldo: em.balance, meta: +em.target.toFixed(0), meses_cobertos: +em.monthsCovered.toFixed(1) },
@@ -4473,7 +4913,7 @@ async function exportTaxCSV() {
   const kd = Engine.kmDeduction(km, fy);
   const fuel = S.expenses.filter(e => e.category === 'combustível' && Engine.fiscalYearAU(e.date) === fy)
     .reduce((s, e) => s + e.amount, 0);
-  let csv = `GranaCerta - Dedutíveis ${fy}\n\nGASTOS DEDUTÍVEIS\ndata,valor,categoria,nota\n`;
+  let csv = `Magnata Finanças - Dedutíveis ${fy}\n\nGASTOS DEDUTÍVEIS\ndata,valor,categoria,nota\n`;
   csv += ded.map(e => [e.date, e.amount, e.category, `"${(e.note||'').replace(/"/g,'""')}"`].join(',')).join('\n');
   csv += `\n\nQUILOMETRAGEM (viagens avulsas)\ndata,km,motivo\n`;
   csv += trips.map(t => [t.date, t.km, `"${(t.note||'').replace(/"/g,'""')}"`].join(',')).join('\n');
@@ -4493,7 +4933,7 @@ async function exportICS() {
     quarterly: 'FREQ=MONTHLY;INTERVAL=3', yearly: 'FREQ=YEARLY' };
   const rruleFor = b => b.frequency === 'custom' ? `FREQ=DAILY;INTERVAL=${b.everyDays || 30}` : RR[b.frequency];
   const dt = s => s.replace(/-/g, '');
-  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//GranaCerta//PT-BR\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:GranaCerta Contas\r\n';
+  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MagnataFinancas//PT-BR\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Magnata Finanças\r\n';
   for (const b of active) {
     ics += 'BEGIN:VEVENT\r\n'
       + `UID:granacerta-${b.id}@local\r\n`
@@ -4501,7 +4941,7 @@ async function exportICS() {
       + `DTSTART:${dt(b.nextDue)}T070000\r\n`
       + `DTEND:${dt(b.nextDue)}T073000\r\n`
       + `SUMMARY:${icsEsc('💸 Pagar: ' + b.name + ' (' + money(b.amount) + ')')}\r\n`
-      + `DESCRIPTION:${icsEsc('Registrada no GranaCerta. Depois de pagar, marca "Paguei" no app.')}\r\n`
+      + `DESCRIPTION:${icsEsc('Registrada no Magnata Finanças. Depois de pagar, marca "Paguei" no app.')}\r\n`
       + (rruleFor(b) ? `RRULE:${rruleFor(b)}\r\n` : '')
       // véspera às 18h — aviso de que amanhã vence
       + `BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEsc('Amanhã vence: ' + b.name + ' ' + money(b.amount))}\r\nTRIGGER:-PT13H\r\nEND:VALARM\r\n`
@@ -4513,8 +4953,43 @@ async function exportICS() {
       + 'END:VEVENT\r\n';
   }
   ics += 'END:VCALENDAR\r\n';
-  await download('granacerta-contas.ics', ics, 'text/calendar');
-  toast('Abre o arquivo e adiciona ao Calendário do iPhone 🔔');
+  await entregarICS(ics, active.length);
+}
+
+// Dentro do app instalado no iPhone, download normal MORRE CALADO.
+// O Partilhar é o único caminho que chega no Calendário. Se falhar, eu aviso —
+// nunca deixo um botão parecer que funcionou quando não funcionou.
+async function entregarICS(ics, n) {
+  const nome = 'magnata-contas.ics';
+  const file = (() => { try { return new File([ics], nome, { type: 'text/calendar' }); } catch { return null; } })();
+  if (file && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Contas — Magnata Finanças' });
+      return openModal(`<h1>🔔 Mandei ${n} contas</h1>
+        <p class="muted">Na folha que abriu, escolhe <b>Calendário</b>. O iPhone pergunta em qual calendário pôr — confirma e pronto.</p>
+        <div class="card"><b>Cada conta leva 4 avisos</b>
+          <div class="small" style="margin-top:6px">
+            🔔 Véspera às 18h — "amanhã vence"<br>
+            ⏰ No dia às 7h — alarme com som<br>
+            📣 No dia às 7h — aviso na tela<br>
+            ✅ No fim do dia — "já pagaste? marca no app"</div></div>
+        <p class="small">Se tocares de novo depois, o iPhone <b>atualiza</b> os mesmos eventos em vez de duplicar.</p>
+        <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+    } catch (e) {
+      if (String(e?.name) === 'AbortError') return;    // ele cancelou, tudo bem
+    }
+  }
+  // sem Partilhar: tenta o download e diz a verdade se não der
+  const ok = await download(nome, ics, 'text/calendar');
+  if (ok === false) {
+    openModal(`<h1>🔔 Não consegui entregar</h1>
+      <p class="muted">Este navegador não deixa eu passar o ficheiro pro Calendário.</p>
+      <div class="warn-box">No iPhone, abre o app pelo <b>ícone da tela de início</b> (não pelo Safari) e tenta de novo —
+        aí o botão Partilhar funciona.</div>
+      <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+  } else {
+    toast('Abre o arquivo e adiciona ao Calendário 🔔');
+  }
 }
 
 // ---------- balanço por período + limpeza ----------
@@ -5251,19 +5726,23 @@ function openAutoFill(rows) {
 
 async function applyAutoFill() {
   if (!AF) return closeModal();
-  const { sum, novas } = AF;
+  const { sum, novas, rows } = AF;
   const mudou = [];
-  if ($('af-bal')?.checked && sum.balance != null && S.profile) {
+  // App vazio? O extrato CRIA o perfil. Nunca mais pergunto "quanto tens na conta" —
+  // foi essa pergunta que fez ele digitar o salário achando que era saldo.
+  if (!S.profile) S.profile = { balance: 0, income: 0, freq: 'weekly', payday: null, hours: 0, contrib: 0, workpct: 80 };
+  if ($('af-bal')?.checked && sum.balance != null) {
     S.profile.balance = sum.balance;
     mudou.push('saldo ' + money(sum.balance));
   }
-  if ($('af-inc')?.checked && sum.income && S.profile) {
+  if ($('af-inc')?.checked && sum.income) {
     S.profile.income = sum.income.amount;
     S.profile.freq = sum.income.frequency;
     S.profile.payday = sum.income.nextPayday;
+    S.profile.incomeDoExtrato = true;   // marca pra confirmar depois: pode ser emprego antigo
     mudou.push('renda ' + money(sum.income.amount));
   }
-  if (S.profile) await put('kv', { id: 'profile', v: S.profile });
+  await put('kv', { id: 'profile', v: S.profile });
   if ($('af-bills')?.checked) {
     const marcadas = [...document.querySelectorAll('.af-bill:checked')].map(el => novas[+el.dataset.i]).filter(Boolean);
     for (const r of marcadas) {
@@ -5276,8 +5755,96 @@ async function applyAutoFill() {
     if (marcadas.length) mudou.push(marcadas.length + ' contas');
   }
   AF = null;
+  await loadState();
+  // ✅ o que o banco provou que saiu vira carimbo na conta, com a data real
+  const nPagas = rows ? await marcarPagasPeloExtrato(rows) : 0;
+  if (nPagas) mudou.push(nPagas + ' pagas ✅');
   closeModal(); await loadState(); render(); await saveSnapshot('extrato aplicado');
   toast(mudou.length ? 'Atualizado: ' + mudou.join(' · ') + ' ✓' : 'Nada foi alterado');
+  setTimeout(() => perguntarOQueFaltou(), 500);
+}
+
+// O extrato é a prova. O que ele mostra debitado fica gravado como pago, com a
+// data do banco — e a conta anda pra próxima data sozinha.
+async function marcarPagasPeloExtrato(rows) {
+  const t = todayISO();
+  const mp = Engine.matchBillPayments(S.bills, rows, t, S.rates);
+  let n = 0;
+  for (const pg of mp.pagas) {
+    const b = S.bills.find(x => x.id === pg.id); if (!b) continue;
+    const due = pg.vencimento || b.nextDue;
+    b.paidLog = (b.paidLog || []).filter(x => x.due !== due);
+    b.paidLog.push({ due, date: pg.data, amount: pg.pago, fonte: 'extrato', desc: pg.desc });
+    if (b.paidLog.length > 40) b.paidLog = b.paidLog.slice(-40);
+    // conta já paga e ainda com a data velha? anda pra próxima ocorrência
+    if (b.nextDue === due && b.frequency !== 'once') {
+      const prox = Engine.billOccurrences({ ...b, active: true, installments: null },
+        Engine.iso(Engine.addDays(due, 1)), Engine.iso(Engine.addDays(due, 400)))[0];
+      if (prox) b.nextDue = prox.due;
+    }
+    await put('bills', b); n++;
+  }
+  return n;
+}
+
+// SÓ DEPOIS do extrato: pergunta o que ele não conseguiu responder sozinho.
+function perguntarOQueFaltou() {
+  const p = S.profile || {};
+  const faltas = [];
+  if (!p.balance && p.balance !== 0) faltas.push(['saldo', 'Quanto tens na conta principal agora?',
+    'Abre o app do banco e copia o número que aparece como <b>Available balance</b>.', 'number', 'balance']);
+  if (!p.income) faltas.push(['renda', 'Quanto entra por pagamento?',
+    'O valor líquido, o que cai na conta mesmo.', 'number', 'income']);
+  if (!p.payday) faltas.push(['payday', 'Quando cai o próximo pagamento?',
+    'A data do próximo, não do último.', 'date', 'payday']);
+  // A renda saiu do extrato e pode ser emprego ANTIGO no histórico. Isso comanda
+  // o payday, que comanda TODA a tela. Confirma antes de deixar rodar.
+  if (p.income && p.incomeDoExtrato) faltas.push(['renda2',
+    `Ainda recebes ${money(p.income)} por ${({weekly:'semana',fortnightly:'quinzena',monthly:'mês'})[p.freq] || 'pagamento'}?`,
+    `Foi o que vi no extrato. Se mudaste de emprego, escreve o valor novo — senão deixa em branco e toca Depois.`,
+    'number', 'income']);
+  if (!Engine.vaultState(S.vault).balance) faltas.push(['anz', 'Quanto tens no ANZ agora?',
+    'É o cofre — só cresce. Se ainda não tens, bota 0.', 'number', '_vault']);
+  if (!faltas.length) return;
+  FALTAS = faltas; FALTA_I = 0;
+  proximaFalta();
+}
+let FALTAS = [], FALTA_I = 0;
+function proximaFalta() {
+  if (FALTA_I >= FALTAS.length) { closeModal(); render(); return toast('Pronto ✓'); }
+  const [, titulo, ajuda, tipo] = FALTAS[FALTA_I];
+  openModal(`<h1>${FALTA_I + 1} de ${FALTAS.length}</h1>
+    <p style="font-size:1.05rem;font-weight:600;margin-bottom:4px">${titulo}</p>
+    <p class="small">${ajuda}</p>
+    <input id="fl-v" type="${tipo}" ${tipo === 'number' ? 'inputmode="decimal" step="0.01"' : ''} autofocus>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="pularFalta()">Depois</button>
+      <button class="btn-primary" onclick="salvarFalta()">Continuar</button>
+    </div>`);
+  setTimeout(() => $('fl-v')?.focus(), 120);
+}
+function pularFalta() {
+  if (FALTAS[FALTA_I] && FALTAS[FALTA_I][0] === 'renda2' && S.profile) {
+    S.profile.incomeDoExtrato = false; put('kv', { id: 'profile', v: S.profile });   // não pergunta de novo
+  }
+  FALTA_I++; proximaFalta();
+}
+async function salvarFalta() {
+  const [, , , tipo, campo] = FALTAS[FALTA_I];
+  const raw = ($('fl-v')?.value || '').trim();
+  if (raw === '') return pularFalta();
+  const v = tipo === 'number' ? +raw : raw;
+  if (tipo === 'number' && !isFinite(v)) return toast('Número inválido');
+  if (FALTAS[FALTA_I][0] === 'renda2') S.profile.incomeDoExtrato = false;
+  if (campo === '_vault') {
+    S.vault = Engine.applyVaultMove(S.vault || {}, { type: 'ajuste', amount: v });
+    await put('kv', { id: 'vault', v: S.vault });
+  } else {
+    S.profile = S.profile || {};
+    S.profile[campo] = v;
+    await put('kv', { id: 'profile', v: S.profile });
+  }
+  await loadState(); FALTA_I++; proximaFalta();
 }
 
 // ✅ O EXTRATO DIZ O QUE JÁ FOI PAGO
@@ -5457,6 +6024,74 @@ function selfTestSuite() {
     bills: BL, vault: V, expenses: [], budgets: {} };
   const D = '2026-01-02';
 
+  // ---- o painel de 4 linhas: a conta TEM que fechar ----
+  t('painel: saldo − pagar − guardar = posso gastar', () => {
+    const p = E.painel(ST0, D);
+    return eq(p.saldo - p.pagar - p.guardar, p.sobra) === true ? true : 'a conta não fecha';
+  });
+  t('painel: o próprio motor confirma que fecha', () => E.painel(ST0, D).confere || 'não confere');
+  t('painel: as 4 linhas na ordem certa', () => {
+    const L = E.painel(ST0, D).linhas.map(x => x.key).join(',');
+    return L === 'entrou,pagar,guardar,sobra' || 'ordem ' + L;
+  });
+  t('painel: conselho fica FORA da conta', () => {
+    const p = E.painel(ST0, D);
+    return !p.conselho || (p.conselho.sugerir <= p.sobra) || 'conselho maior que a sobra';
+  });
+  t('painel: nunca aconselha o último dólar', () => {
+    const p = E.painel(ST0, D);
+    return !p.conselho || p.conselho.sugerir <= p.sobra * 0.6 + 0.01 || 'aconselhou demais';
+  });
+  t('painel: o que não cabe no saldo aparece, não some', () => {
+    const p = E.painel({ ...ST0, balance: 100 }, D);
+    return (p.guardarFalta > 0 && p.guardarIdeal > p.guardar) || p.guardarFalta === 0 || 'escondeu a falta';
+  });
+  t('painel: sem saldo, posso gastar não fica positivo', () => {
+    const p = E.painel({ ...ST0, balance: 0 }, D);
+    return p.sobra <= 0 || 'deu ' + p.sobra;
+  });
+  t('painel: diz se o pagamento caiu ou não', () => {
+    const p = E.painel({ ...ST0, incomes: [] }, D);
+    return p.entrou.caiu === false || 'disse que caiu sem entrada nenhuma';
+  });
+  t('painel: reconhece o pagamento quando ele cai', () => {
+    const desde = E.lastPayday('2026-01-08', 'weekly', D);
+    const p = E.painel({ ...ST0, incomes: [{ date: desde, amount: 3000, source: 'trabalho' }] }, D);
+    return p.entrou.caiu === true || 'não viu o pagamento de ' + desde;
+  });
+  // ---- a agenda: o mercado de domingo e o aluguel de segunda ----
+  t('agenda: acha o aluguel que vence na janela', () => {
+    const a = E.agenda(ST0, D);
+    return a.dias.some(d => d.itens.some(i => i.name === 'Aluguel')) || 'não achou o aluguel';
+  });
+  t('agenda: sabe o dia da semana', () => {
+    const a = E.agenda(ST0, D);
+    return (a.dias[0] && E.DIA_SEM.includes(a.dias[0].diaSemana)) || 'sem dia da semana';
+  });
+  t('agenda: conta paga fica visível com ✅', () => {
+    const b = { ...BL[0], nextDue: '2026-01-12', paidLog: [{ due: '2026-01-05', date: '2026-01-05', amount: 650, fonte: 'extrato' }] };
+    const a = E.agenda({ ...ST0, bills: [b] }, D);
+    const todos = a.dias.flatMap(d => d.itens);
+    return todos.some(i => i.pago) || 'a conta paga sumiu da agenda';
+  });
+  t('agenda: o que foi pago não conta como falta', () => {
+    const b = { ...BL[0], paidLog: [{ due: '2026-01-05', date: '2026-01-05', amount: 650, fonte: 'extrato' }] };
+    const a = E.agenda({ ...ST0, bills: [b] }, D);
+    return eq(a.falta, 0);
+  });
+  t('agenda: conta vencida não fica escondida', () => {
+    const b = { ...BL[0], nextDue: '2025-12-20' };
+    const a = E.agenda({ ...ST0, bills: [b] }, D);
+    return a.vencidas.length > 0 || 'engoliu a conta vencida';
+  });
+  t('agenda: soma do dia = soma dos itens do dia', () => {
+    const a = E.agenda(ST0, D);
+    for (const d of a.dias) {
+      const s = d.itens.reduce((x, i) => x + i.amount, 0);
+      if (Math.abs(s - d.total) > 0.01) return `dia ${d.data}: ${d.total} ≠ ${s}`;
+    }
+    return true;
+  });
   t('classifica aluguel como conta da semana', () => !E.isVaultBill(BL[0]) && !E.isMonthlyBill(BL[0]) || 'errou');
   t('classifica pensão como conta do mês', () => E.isMonthlyBill(BL[1]) || 'errou');
   t('classifica ATO como conta do ANZ', () => E.isVaultBill(BL[2]) || 'errou');
