@@ -352,8 +352,11 @@ a{color:var(--blue)}
   <div class="card">
     <p class="muted">Duas contas. Só a <b>Smart Access</b> entra no "quanto posso gastar". O <b>cofre</b> nunca entra.</p>
 
-    <label>🏦 Smart Access — conta principal (CBA)</label>
+    <label>🏦 Smart Access — usa o <b>Available</b>, não o Balance</label>
     <input id="bal-main" type="number" inputmode="decimal" placeholder="0.00">
+    <div class="fab-note">No app do CBA aparecem dois números. <b>Available</b> é o de cima, em grande —
+      é esse. O <b>Balance</b> é maior porque ainda não desceu o <b>Pending</b> (compras feitas que o banco
+      ainda não fechou). Esse dinheiro já tem dono, não dá pra gastar.</div>
 
     <div style="border-top:1px solid var(--line);margin:16px 0 12px"></div>
 
@@ -5964,6 +5967,13 @@ async function marcarPagasPeloExtrato(rows) {
 function perguntarOQueFaltou() {
   const p = S.profile || {};
   const faltas = [];
+  // O extrato traz o saldo do DIA DELE, e nenhum extrato conhece o Pending.
+  // Por isso o número do PDF quase nunca é o "Available" de hoje.
+  if (p.balance != null) faltas.push(['saldoHoje',
+    `Quanto está o Available agora? (tenho ${money(p.balance)})`,
+    `No app do CBA é o número grande de cima, escrito <b>Available</b> — não o Balance.
+     O extrato só sabe o saldo do dia em que foi emitido e não enxerga o Pending.`,
+    'number', 'balance']);
   if (!p.balance && p.balance !== 0) faltas.push(['saldo', 'Quanto tens na conta principal agora?',
     'Abre o app do banco e copia o número que aparece como <b>Available balance</b>.', 'number', 'balance']);
   if (!p.income) faltas.push(['renda', 'Quanto entra por pagamento?',
