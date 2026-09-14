@@ -422,6 +422,7 @@ a{color:var(--blue)}
     <div class="fab-note">Restaurar procura um ficheiro <b>.json</b> nos Arquivos do iPhone. Se o iPhone
       oferecer a câmara, toca em <b>Explorar</b> ou <b>Escolher ficheiro</b> lá embaixo na lista.</div>
     <div class="btn-row">
+      <button class="btn-ghost" onclick="openArrumarSaldo()">🔧 Arrumar o saldo</button>
       <button class="btn-ghost" onclick="exportFiscalCSV()">🧾 CSV recibos (ano fiscal)</button>
       <button class="btn-ghost" onclick="openSnapshotsModal()">🛡️ Proteção dos dados</button>
     </div>
@@ -2963,6 +2964,15 @@ function renderPainel(t) {
   // E o que NÃO cabe no saldo aparece aqui, nunca escondido dentro de uma linha.
   const c = p.conselho;
   const avisos = [];
+  // Saldo negativo é impossível na vida real. Se aparecer, é erro meu — e eu
+  // aviso na cara dele, na tela principal, com o botão de arrumar do lado.
+  if (p.saldo < 0) {
+    const dup = acharDuplicatas();
+    avisos.push(`<div class="pn-alerta r"><span>🔧</span><span><b>Esse saldo não existe.</b>
+      Conta de banco não fica negativa assim — eu descontei alguma coisa duas vezes.
+      ${dup.achados.length ? `Achei <b>${dup.achados.length} desconto${dup.achados.length !== 1 ? 's' : ''} repetido${dup.achados.length !== 1 ? 's' : ''}</b> (${money(dup.total)}).` : ''}
+      <a onclick="openArrumarSaldo()" style="text-decoration:underline">arrumar agora ›</a></span></div>`);
+  }
   if (!e.caiu && !e.semAncora && e.atrasado) avisos.push(
     `<div class="pn-alerta"><span>🟠</span><span><b>O pagamento não aparece.</b> Desde ${fmtDate(e.desde)} nada entrou.
       Se caiu e tu não registaste, o extrato acerta em 10 segundos.
@@ -3530,9 +3540,149 @@ function renderBills() {
 }
 function freqLabel(f,b){if(f==='custom')return `a cada ${b?.everyDays||30} dias`;return {weekly:'semanal',fortnightly:'quinzenal',monthly:'mensal',quarterly:'trimestral',yearly:'anual',once:'única'}[f]||f;}
 
-async function payBill(id, valorReal) {
+// ============================================================================
+// 🔧 ARRUMAR O SALDO — acha desconto pago duas vezes e devolve o dinheiro.
+// Existe porque o botão "Paguei" descontava sem trava e o saldo foi pra negativo.
+// Não escondo o erro: mostro linha por linha.
+// ============================================================================
+function acharDuplicatas() {
+  const t = todayISO();
+  const meus = S.expenses.filter(e => e.source === 'conta');
+  const ext = S.expenses.filter(e => e.source === 'extrato' && !e.internal);
+  const achados = [], usados = new Set();
+  const porChave = {};
+  for (const e of meus) {
+    const k = e.note + '|' + e.amount + '|' + e.date;
+    (porChave[k] = porChave[k] || []).push(e);
+  }
+  // a) o mesmo botão tocado várias vezes: o 1º vale, os outros são lixo
+  for (const k of Object.keys(porChave)) {
+    const g = porChave[k];
+    for (let i = 1; i < g.length; i++) {
+      achados.push({ e: g[i], motivo: 'repetido', detalhe: `tocaste "Paguei" ${g.length}x nessa conta no mesmo dia` });
+      usados.add(g[i].id);
+    }
+  }
+  // b) o banco já tinha debitado: o meu desconto é o duplicado
+  for (const e of meus) {
+    if (usados.has(e.id)) continue;
+    const chaves = Engine.normMerchant(e.note || '').split(' ').filter(w => w.length >= 4);
+    const g = ext.find(x => Math.abs(x.amount - e.amount) <= Math.max(1, e.amount * 0.03)
+      && chaves.some(w => Engine.normMerchant(x.note || '').includes(w))
+      && Math.abs(Engine.daysBetween(x.date, e.date)) <= 25);
+    if (g) { achados.push({ e, motivo: 'banco', detalhe: `o banco já debitou em ${fmtDate(g.date)}: ${(g.note||'').slice(0,38)}` }); usados.add(e.id); }
+  }
+  return { achados, total: Engine.round2(achados.reduce((s, x) => s + x.e.amount, 0)) };
+}
+
+function openArrumarSaldo() {
+  const { achados, total } = acharDuplicatas();
+  const saldo = S.profile?.balance ?? 0;
+  if (!achados.length) return openModal(`<h1>🔧 Arrumar o saldo</h1>
+    <p class="muted">Não achei nenhum desconto repetido. O teu saldo de <b>${money(saldo)}</b> não tem duplicata.</p>
+    <p class="small">Se mesmo assim ele não bate com o banco, ajusta na mão em Mais › Minhas contas.</p>
+    <button class="btn-ghost" onclick="closeModal()">Fechar</button>`);
+  openModal(`<h1>🔧 Achei ${achados.length} desconto${achados.length !== 1 ? 's' : ''} repetido${achados.length !== 1 ? 's' : ''}</h1>
+    <p class="muted">Isso saiu do teu saldo duas vezes. Culpa minha — o botão "Paguei" não tinha trava.</p>
+    <div class="card" style="max-height:38vh;overflow-y:auto">
+      ${achados.map(x => `<div class="list-item">
+        <div class="li-main"><div class="li-title">${esc(x.e.note)}</div>
+          <div class="li-sub small">${x.motivo === 'banco' ? '🏦 ' : '🔁 '}${esc(x.detalhe)}</div></div>
+        <div class="li-amt pos">+${money(x.e.amount)}</div></div>`).join('')}
+    </div>
+    <div class="card" style="border-color:var(--green)">
+      <div class="row"><span class="k">Saldo agora</span><span class="v ${saldo < 0 ? 'neg' : ''}">${money(saldo)}</span></div>
+      <div class="row"><span class="k">Devolvendo os repetidos</span><span class="v pos">+ ${money(total)}</span></div>
+      <div class="row" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px">
+        <span class="k"><b>Fica</b></span><span class="v pos"><b>${money(Engine.round2(saldo + total))}</b></span></div>
+    </div>
+    <div class="warn-box">Depois confere com o banco. Se ainda não bater, ajusta na mão —
+      o banco é quem manda, eu não.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Agora não</button>
+      <button class="btn-primary" onclick="arrumarSaldo()">Devolver ${money(total)}</button>
+    </div>`);
+}
+
+async function arrumarSaldo() {
+  const { achados, total } = acharDuplicatas();
+  if (!achados.length) return closeModal();
+  await saveSnapshot('antes de arrumar o saldo');   // dá pra voltar atrás
+  for (const x of achados) await del('expenses', x.e.id);
+  S.profile.balance = Engine.round2((S.profile.balance || 0) + total);
+  await put('kv', { id: 'profile', v: S.profile });
+  await loadState(); closeModal(); render();
+  toast(`Devolvi ${money(total)} · saldo ${money(S.profile.balance)} ✓`);
+}
+
+// Uma conta só pode ser descontada UMA vez. Tocar "Paguei" repetido na mesma
+// conta jogou um saldo real pra negativo. Nunca mais.
+function jaDescontada(b) {
+  const t = todayISO();
+  // a) já marquei essa ocorrência como paga?
+  const nolog = (b.paidLog || []).find(p => p.due === b.nextDue);
+  if (nolog) return { tipo: 'log', quando: nolog.date, fonte: nolog.fonte };
+  // b) já existe um gasto meu com o nome dessa conta dentro do ciclo?
+  const ciclo = Math.max(3, Engine.cycleDays(b.frequency === 'custom' ? 'monthly' : b.frequency) - 1);
+  const meu = S.expenses.find(e => e.source === 'conta' && e.note === b.name
+    && Engine.daysBetween(e.date, t) >= 0 && Engine.daysBetween(e.date, t) <= ciclo);
+  if (meu) return { tipo: 'repetido', quando: meu.date, valor: meu.amount };
+  // c) o BANCO já debitou ESSA ocorrência? então o saldo do extrato já está sem
+  // esse dinheiro. Comparo com a DATA DE VENCIMENTO, não com hoje — uma conta
+  // semanal paga há 12 dias é outra ocorrência, essa aqui ainda não foi.
+  const alvo = Engine.isForeign(b) ? Engine.foreignToAUD(b, S.rates) : b.amount;
+  const chaves = Engine.normMerchant(b.name).split(' ').filter(w => w.length >= 4);
+  const perto = Math.max(3, Math.min(10, Math.floor(ciclo / 2) + 2));
+  const doBanco = S.expenses.find(e => e.source === 'extrato' && !e.internal
+    && Math.abs(e.amount - alvo) <= Math.max(1, alvo * 0.03)
+    && chaves.some(w => Engine.normMerchant(e.note || '').includes(w))
+    && Math.abs(Engine.daysBetween(e.date, b.nextDue)) <= perto
+    && Engine.daysBetween(e.date, t) >= 0);
+  if (doBanco) return { tipo: 'banco', quando: doBanco.date, valor: doBanco.amount, desc: doBanco.note };
+  return null;
+}
+
+// Marca a conta como paga SEM mexer no saldo (o dinheiro já saiu de verdade)
+async function baixarSemDescontar(b, quando, fonte) {
+  b.paidLog = (b.paidLog || []).filter(x => x.due !== b.nextDue);
+  b.paidLog.push({ due: b.nextDue, date: quando || todayISO(), amount: b.amount, fonte: fonte || 'banco' });
+  if (b.frequency === 'once') { b.active = false; await put('bills', b); }
+  else {
+    const prox = Engine.billOccurrences({ ...b, active: true, installments: null },
+      Engine.iso(Engine.addDays(b.nextDue, 1)), Engine.iso(Engine.addDays(b.nextDue, 400)))[0];
+    if (prox) b.nextDue = prox.due;
+    await put('bills', b);
+  }
+  await loadState(); closeModal(); render();
+  toast(`${b.name} baixada ✓ (sem descontar de novo)`);
+}
+
+async function payBill(id, valorReal, forcar) {
   const b = S.bills.find(x => x.id === id);
   if (!b) return;
+
+  // ⛔ trava anti-duplicata — a que faltava
+  if (!forcar) {
+    const dup = jaDescontada(b);
+    if (dup) {
+      const txt = {
+        log: `Já marcaste <b>${esc(b.name)}</b> como paga em ${fmtDate(dup.quando)}${dup.fonte === 'extrato' ? ' (foi o banco que provou)' : ''}.`,
+        repetido: `Já descontei <b>${money(dup.valor)}</b> de <b>${esc(b.name)}</b> em ${fmtDate(dup.quando)}.`,
+        banco: `O <b>banco já debitou</b> ${money(dup.valor)} em ${fmtDate(dup.quando)}:<br><span class="small">${esc((dup.desc||'').slice(0,50))}</span><br>O teu saldo já está sem esse dinheiro.`,
+      }[dup.tipo];
+      return openModal(`<h1>⛔ Espera</h1>
+        <p class="muted">${txt}</p>
+        <div class="warn-box">Se eu descontar de novo, o teu saldo fica <b>${money(Engine.round2((S.profile?.balance||0) - b.amount))}</b> —
+          e isso não é verdade. Foi assim que ele foi parar em números negativos.</div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="baixarSemDescontar(S.bills.find(x=>x.id==='${b.id}'), '${dup.quando}', '${dup.tipo === 'banco' ? 'extrato' : 'manual'}')">
+            ✅ Só marcar como paga</button>
+          <button class="btn-ghost" onclick="closeModal()">Deixa quieto</button>
+        </div>
+        <button class="btn-ghost btn-sm" style="width:100%;margin-top:8px;opacity:.6"
+          onclick="closeModal();payBill('${b.id}', ${valorReal ?? 'null'}, true)">Paguei DE NOVO, desconta mesmo assim</button>`);
+    }
+  }
   // conta em real: o valor que saiu da conta revela o câmbio do dia
   if (Engine.isForeign(b) && valorReal == null) return askForeignPaid(b);
   if (Engine.isForeign(b) && valorReal > 0) {
@@ -3549,6 +3699,10 @@ async function payBill(id, valorReal) {
   // registra o gasto e avança a data
   await put('expenses', { id: uid(), amount: b.amount, category: b.category || 'contas', note: b.name, date: todayISO(), source: 'conta' });
   await adjustBalance(-b.amount);
+  // fica gravado que ESSA ocorrência foi paga — é o que segura a duplicata
+  b.paidLog = (b.paidLog || []).filter(x => x.due !== b.nextDue);
+  b.paidLog.push({ due: b.nextDue, date: todayISO(), amount: b.amount, fonte: 'manual' });
+  if (b.paidLog.length > 40) b.paidLog = b.paidLog.slice(-40);
   // BUG CORRIGIDO: a fatia guardada pra essa conta tem que sair da reserva do mês.
   // Antes a reserva só crescia e ia trancando dinheiro que já tinha sido gasto.
   if (Engine.isMonthlyBill(b) && (S.funds.monthReserve || 0) > 0) {
