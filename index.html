@@ -173,6 +173,9 @@ nav.tabs .ico{font-size:1.2rem;line-height:1}
 .bv h1{font-size:1.25rem;margin-bottom:4px}
 .bv-p{display:flex;gap:9px;align-items:flex-start;font-size:.87rem;padding:5px 0;line-height:1.4}
 .bv-p b{color:var(--green)}
+.ag-pay{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700;color:var(--green);
+  text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;padding-top:9px;border-top:2px dashed #23492f}
+.ag-d.depois{opacity:.55}
 .ag-tot{display:flex;justify-content:space-between;border-top:2px solid var(--line);margin-top:8px;padding-top:9px;
   font-size:.9rem;font-weight:700}
 
@@ -416,6 +419,8 @@ a{color:var(--blue)}
       <button class="btn-ghost" onclick="exportForClaude()">🤖 Copiar resumo p/ Claude</button>
       <button class="btn-ghost" onclick="pickFile('import-file')">📥 Restaurar</button>
     </div>
+    <div class="fab-note">Restaurar procura um ficheiro <b>.json</b> nos Arquivos do iPhone. Se o iPhone
+      oferecer a câmara, toca em <b>Explorar</b> ou <b>Escolher ficheiro</b> lá embaixo na lista.</div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="exportFiscalCSV()">🧾 CSV recibos (ano fiscal)</button>
       <button class="btn-ghost" onclick="openSnapshotsModal()">🛡️ Proteção dos dados</button>
@@ -427,10 +432,10 @@ a{color:var(--blue)}
 
 
 <!-- inputs de ficheiro: filhos diretos do body. Dentro de .screen{display:none} o iOS ignora o .click(). -->
-<input type="file" id="stmt-file" class="fpick" onchange="stmtPicked(this)">
+<input type="file" id="stmt-file" class="fpick" accept="application/pdf,text/csv,application/json,.pdf,.csv,.json" onchange="stmtPicked(this)">
 <input type="file" id="receipt-file" class="fpick" accept="image/*" onchange="receiptPicked(this)">
 <input type="file" id="odo-file" class="fpick" accept="image/*" onchange="odoPicked(this)">
-<input type="file" id="import-file" class="fpick" onchange="importBackup(this)">
+<input type="file" id="import-file" class="fpick" accept="application/json,text/plain,.json" onchange="importBackup(this)">
 
 <!-- ============ MODAIS ============ -->
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
@@ -2027,8 +2032,11 @@ const Engine = (() => {
     const freq = (state.income && state.income.frequency) || 'weekly';
     const pay = (state.income && state.income.nextPayday)
       ? nextPayday(state.income.nextPayday, freq, todayStr) : null;
-    const horizon = diasForcados != null ? diasForcados
-      : (pay ? Math.max(1, daysBetween(todayStr, pay)) : 7);
+    // Até o pagamento é o que manda na CONTA. Mas se o pagamento é depois de
+    // amanhã, uma janela de 2 dias esconde o mercado de domingo — e foi disso
+    // que ele reclamou. Então mostro no mínimo 7 dias e marco onde cai o salário.
+    const atePay = pay ? Math.max(1, daysBetween(todayStr, pay)) : 7;
+    const horizon = diasForcados != null ? diasForcados : Math.max(atePay, 7);
 
     // vencidas: nextDue já passou e ninguém baixou. upcomingBills pula essas.
     const vencidas = (state.bills || [])
@@ -2069,6 +2077,7 @@ const Engine = (() => {
       const itens = porDia.get(d).sort((a, b) => b.amount - a.amount);
       const dist = daysBetween(todayStr, d);
       return { data: d, dist, passado: dist < 0,
+        depoisDoPagamento: !!pay && daysBetween(pay, d) > 0,   // já é dinheiro do próximo salário
         hoje: dist === 0, amanha: dist === 1,
         diaSemana: DIA_SEM[toDate(d).getDay()],
         itens,
@@ -2076,14 +2085,16 @@ const Engine = (() => {
         falta: round2(itens.filter(i => !i.pago).reduce((s, i) => s + i.amount, 0)) };
     });
 
-    const todos = dias.flatMap(d => d.itens);
-    return { ate: pay, horizon, dias, vencidas,
+    const todos = dias.filter(d => !d.depoisDoPagamento).flatMap(d => d.itens);
+    const depois = dias.filter(d => d.depoisDoPagamento).flatMap(d => d.itens);
+    return { ate: pay, horizon, atePay, dias, vencidas,
+      depois, totalDepois: round2(depois.filter(i => !i.pago).reduce((s, i) => s + i.amount, 0)),
       totalVencido: round2(vencidas.reduce((s, v) => s + v.amount, 0)),
       total: round2(todos.reduce((s, i) => s + i.amount, 0)),
       pago: round2(todos.filter(i => i.pago).reduce((s, i) => s + i.amount, 0)),
       falta: round2(todos.filter(i => !i.pago).reduce((s, i) => s + i.amount, 0)),
       nPago: todos.filter(i => i.pago).length, nTotal: todos.length,
-      vazio: todos.length === 0 && vencidas.length === 0 };
+      vazio: todos.length === 0 && depois.length === 0 && vencidas.length === 0 };
   }
 
   return { isVaultBill, isMonthlyBill, cycleDays, paysPerMonth, vaultState, provisionPlan,
@@ -3040,12 +3051,6 @@ function agendaHTML(ag, semTitulo) {
   const linha = i => `<div class="ag-i ${i.pago ? 'pg' : ''}">
     <span class="nm">${i.pago ? '✅ ' : (i.doCofre ? '🏦 ' : '')}${esc(i.name)}${i.moeda ? ' 🇧🇷' : ''}</span>
     <span class="vl">${money(i.amount)}</span></div>`;
-  const dias = ag.dias.map(d => `
-    <div class="ag-d">
-      <span class="ag-dia ${d.hoje ? 'hoje' : d.amanha ? 'amanha' : ''}">
-        <b>${d.hoje ? 'Hoje' : d.amanha ? 'Amanhã' : d.passado ? 'Já foi' : d.diaSemana}</b>${fmtDate(d.data)}</span>
-      <span class="ag-itens">${d.itens.map(linha).join('')}</span>
-    </div>`).join('');
   const venc = ag.vencidas.length ? `
     <div class="warn-box" style="background:var(--red-dim);border-color:#6b2a2a">
       🔴 <b>${ag.vencidas.length} conta${ag.vencidas.length !== 1 ? 's' : ''} com data atrasada</b> (${money(ag.totalVencido)}) —
@@ -3056,17 +3061,31 @@ function agendaHTML(ag, semTitulo) {
         <button class="btn-ghost btn-sm" onclick="openAcertarDatas()">🗓️ Acertar as datas</button>
       </div>
     </div>` : '';
+  let marcou = false;
+  const dias = ag.dias.map(d => {
+    let sep = '';
+    if (d.depoisDoPagamento && !marcou) {
+      marcou = true;
+      sep = `<div class="ag-pay">💰 aqui cai o teu pagamento — ${fmtDate(ag.ate)}</div>`;
+    }
+    return sep + `
+    <div class="ag-d ${d.depoisDoPagamento ? 'depois' : ''}">
+      <span class="ag-dia ${d.hoje ? 'hoje' : d.amanha ? 'amanha' : ''}">
+        <b>${d.hoje ? 'Hoje' : d.amanha ? 'Amanhã' : d.passado ? 'Já foi' : d.diaSemana}</b>${fmtDate(d.data)}</span>
+      <span class="ag-itens">${d.itens.map(linha).join('')}</span>
+    </div>`;
+  }).join('');
   // O total TEM que bater com a linha 2 do painel. Por isso separo o que sai da
   // conta principal do que sai do ANZ — senão a tela se contradiz sozinha.
-  const daConta = ag.dias.flatMap(d => d.itens).filter(i => !i.pago && !i.doCofre)
-    .reduce((s, i) => s + i.amount, 0);
-  const doAnz = ag.dias.flatMap(d => d.itens).filter(i => !i.pago && i.doCofre)
-    .reduce((s, i) => s + i.amount, 0);
+  const antes = ag.dias.filter(d => !d.depoisDoPagamento).flatMap(d => d.itens);
+  const daConta = antes.filter(i => !i.pago && !i.doCofre).reduce((s, i) => s + i.amount, 0);
+  const doAnz = antes.filter(i => !i.pago && i.doCofre).reduce((s, i) => s + i.amount, 0);
   const rodape = `<div class="ag-tot"><span>Sai da tua conta</span>
       <span style="color:var(--red)">${money(daConta)}</span></div>`
     + (doAnz > 0 ? `<div class="ag-tot" style="border-top:1px solid var(--line);margin-top:0;padding-top:6px;font-weight:600;font-size:.82rem">
       <span style="color:var(--tx2)">🏦 Sai do ANZ (já provisionado)</span>
       <span style="color:var(--blue)">${money(doAnz)}</span></div>` : '')
+    + (ag.totalDepois > 0 ? `<div class="small" style="margin-top:6px">Depois do pagamento vêm mais ${money(ag.totalDepois)} — esses saem do próximo salário.</div>` : '')
     + (ag.pago > 0 ? `<div class="small" style="margin-top:6px">✅ ${money(ag.pago)} em ${ag.nPago} conta${ag.nPago !== 1 ? 's' : ''} o extrato já provou que saiu.</div>` : '');
   return venc + dias + rodape;
 }
@@ -3077,7 +3096,7 @@ function renderAgenda(t) {
   if (ag.vazio) { box.style.display = 'none'; return; }
   box.style.display = 'block';
   box.innerHTML = `<div class="ag-h">
-      <h2 style="margin:0">📅 Até ${ag.ate ? fmtDate(ag.ate) : 'o pagamento'}</h2>
+      <h2 style="margin:0">📅 Os próximos ${ag.horizon} dias</h2>
       <a onclick="exportICS()" style="font-size:.78rem">🔔 pro calendário ›</a>
     </div>` + agendaHTML(ag);
 }
