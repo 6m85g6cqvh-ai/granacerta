@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Magnata Finanças">
 <meta name="theme-color" content="#0d1117">
-<meta name="gc-build" content="202609151232">
+<meta name="gc-build" content="202609170937">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" href="./icon-192.png">
@@ -135,6 +135,12 @@ nav.tabs .ico{font-size:1.2rem;line-height:1}
 .sim-result{margin-top:12px;padding:12px;border-radius:12px;background:var(--card2);display:none}
 /* ---- PAINEL: a conta de padeiro, 4 linhas numeradas ---- */
 .pn-topo{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:12px}
+.atalhos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.atalhos button{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 6px;
+  color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:5px;font-size:1.3rem;line-height:1}
+.atalhos button span{font-size:.68rem;color:var(--tx2);font-weight:600;text-align:center;line-height:1.2}
+.atalhos button:active{border-color:var(--green)}
+.pn-edit{display:block;font-size:.62rem;font-weight:600;color:var(--blue);text-transform:none;letter-spacing:0;margin-top:2px}
 .pn-topo-l{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);font-weight:700}
 .pn-topo-v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums}
 .pn-l{display:flex;align-items:center;gap:11px;padding:11px 2px;border-top:1px solid rgba(255,255,255,.07);text-align:left}
@@ -215,8 +221,8 @@ a{color:var(--blue)}
   <div class="card" id="boas-vindas" style="display:none"></div>
 
   <div class="hero" id="hero">
-    <div class="pn-topo">
-      <span class="pn-topo-l">Tenho na conta agora</span>
+    <div class="pn-topo" onclick="openSaldoRapido()" style="cursor:pointer">
+      <span class="pn-topo-l">Tenho na conta agora <span class="pn-edit">✏️ tocar pra corrigir</span></span>
       <span class="pn-topo-v" id="pn-saldo">—</span>
     </div>
     <div id="pn-linhas"></div>
@@ -307,6 +313,15 @@ a{color:var(--blue)}
 
 <!-- ============ MAIS ============ -->
 <div class="screen" id="scr-mais">
+  <!-- atalhos: o "Mais" tem 11 secções e ele não achava o campo do saldo -->
+  <div class="atalhos">
+    <button onclick="openSaldoRapido()">💳<span>Saldo da conta</span></button>
+    <button onclick="document.getElementById('vt-balance')?.scrollIntoView({block:'center'})">🏦<span>ANZ</span></button>
+    <button onclick="openArrumarSaldo()">🔧<span>Arrumar saldo</span></button>
+    <button onclick="pickFile('import-file')">📥<span>Restaurar</span></button>
+    <button onclick="exportBackup(false)">💾<span>Backup</span></button>
+    <button onclick="openSelfTest()">🧪<span>Conferir motor</span></button>
+  </div>
   <h2>A escada</h2>
   <div class="card" id="ladder-big"></div>
   <h2>Metas</h2>
@@ -3145,6 +3160,42 @@ function renderBoasVindas() {
 // Nenhum número aparece aqui sem estar somado. Linha 4 = 1 − 2 − 3.
 // ============================================================================
 let PN = null;
+// O campo do saldo estava enterrado no meio de 11 secções do "Mais" e ele não
+// achou. Agora é um toque na primeira linha da tela inicial — que é onde o
+// número aparece errado, logo é onde ele quer corrigir.
+function openSaldoRapido() {
+  const atual = S.profile?.balance ?? 0;
+  openModal(`<h1>💳 Saldo da conta principal</h1>
+    <p class="muted">No app do Commonwealth aparecem dois números. Usa o <b>Available</b> —
+      é o de cima, em grande.</p>
+    <div class="card" style="background:var(--card2);font-size:.86rem">
+      <div class="row"><span class="k">✅ <b>Available</b></span><span class="v pos">é este</span></div>
+      <div class="row"><span class="k">❌ Balance</span><span class="v small">maior, ainda não desceu o Pending</span></div>
+      <div class="small" style="margin-top:6px">O <b>Pending</b> é compra já feita que o banco ainda não fechou.
+        Esse dinheiro já tem dono — não dá pra gastar duas vezes.</div>
+    </div>
+    <label>Available agora</label>
+    <input id="sr-v" type="number" inputmode="decimal" step="0.01" value="${atual}" autofocus>
+    <div class="small">Estava ${money(atual)}.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarSaldoRapido()">Salvar</button>
+    </div>
+    <button class="btn-ghost btn-sm" style="width:100%;margin-top:10px;opacity:.7"
+      onclick="closeModal();go('mais');setTimeout(()=>document.getElementById('bal-main')?.scrollIntoView({block:'center'}),350)">
+      ⚙️ Abrir "Minhas contas" (ANZ e outras)</button>`);
+  setTimeout(() => { const el = $('sr-v'); if (el) { el.focus(); el.select(); } }, 120);
+}
+async function salvarSaldoRapido() {
+  const v = +($('sr-v')?.value);
+  if (!isFinite(v)) return toast('Número inválido');
+  S.profile = S.profile || { income: 0, freq: 'weekly', payday: null, hours: 0, contrib: 0, workpct: 80 };
+  S.profile.balance = Engine.round2(v);
+  await put('kv', { id: 'profile', v: S.profile });
+  await loadState(); closeModal(); render();
+  toast(`Saldo: ${money(S.profile.balance)} ✓`);
+}
+
 function renderPainel(t) {
   PN = Engine.painel(engineState(), t);
   const p = PN;
