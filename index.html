@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Magnata Finanças">
 <meta name="theme-color" content="#0d1117">
-<meta name="gc-build" content="202609170937">
+<meta name="gc-build" content="202609171059">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" href="./icon-192.png">
@@ -256,7 +256,7 @@ a{color:var(--blue)}
 
   <div class="card" id="xray-card" style="display:none"></div>
 
-  <div class="sec-title"><h2>🏦 ANZ</h2><a onclick="openVaultModal()">mexer ›</a></div>
+  <div class="sec-title"><h2>🏦 ANZ</h2><a onclick="editarANZ()">✏️ corrigir saldo ›</a></div>
   <div class="card" id="vault-card"><div class="empty">Configura o ANZ em Mais › Minhas contas</div></div>
 
   <div class="sec-title"><h2>Próximas contas</h2><a onclick="go('contas')">ver todas ›</a></div>
@@ -1190,7 +1190,8 @@ const Engine = (() => {
   // (poupança, metas, ANZ Plus) não é gasto — é dinheiro guardado, e volta.
   const OWN_ACCOUNTS_DEFAULT = [
     'netbank', 'savings goal', 'holiday goal', 'my investment',
-    'savings goal', 'holiday goal', 'my investment',
+    // o ANZ faltava aqui: mandar dinheiro pro cofre aparecia como GASTO
+    'anz plus', 'growth saver', 'anz savings',
   ];
   // TRÊS ESTADOS, não dois. Antes, qualquer "transfer to xx1234" era tratado como
   // conta do Magnata — e uma transferência pra um amigo sumia dos gastos.
@@ -1907,13 +1908,14 @@ const Engine = (() => {
   // Quanto o nome da conta parece com a descrição do banco (0 a 1).
   // `apelidos` é o que o app APRENDEU: "Mercado (domingo)" nunca vai casar com
   // "WOOLWORTHS" sozinho — ele pergunta uma vez, guarda, e nunca mais pergunta.
-  function parecencia(nomeConta, descBanco, apelidos) {
-    const pb0 = palavrasChave(descBanco);
-    for (const ap of (apelidos || [])) {
-      const pw = palavrasChave(ap);
-      if (pw.length && pw.every(w => pb0.some(x => x.includes(w) || w.includes(x)))) return 1;
-    }
-    const pa = palavrasChave(nomeConta), pb = pb0;
+  // O NÚCLEO do nome é o que identifica quem recebe: "ATO — parcela mensal" é
+  // "ATO"; "Aluguel — GAP Real Estate" é "Aluguel". O resto é anotação dele.
+  function nucleoNome(nome) {
+    return String(nome || '').split(/[—\-–(|:]/)[0].trim() || String(nome || '');
+  }
+
+  function _parecencia1(nomeConta, pb) {
+    const pa = palavrasChave(nomeConta);
     if (!pa.length || !pb.length) return 0;
     const bate = w => pb.some(x => x === w || (w.length >= 4 && x.includes(w)) || (x.length >= 4 && w.includes(x)));
     const hits = pa.filter(bate).length;
@@ -1921,6 +1923,21 @@ const Engine = (() => {
     const forte = pa.some(w => w.length >= 5 && bate(w));
     const base = hits / pa.length;
     return Math.min(1, forte ? Math.max(base, 0.75) : base);
+  }
+
+  function parecencia(nomeConta, descBanco, apelidos) {
+    const pb = palavrasChave(descBanco);
+    for (const ap of (apelidos || [])) {
+      const pw = palavrasChave(ap);
+      if (pw.length && pw.every(w => pb.some(x => x.includes(w) || w.includes(x)))) return 1;
+    }
+    // compara o nome inteiro E só o núcleo — fica com o melhor. Sem isso,
+    // "ATO — parcela mensal" nunca casava com "Transfer to ATO BPAY".
+    const inteiro = _parecencia1(nomeConta, pb);
+    const nuc = nucleoNome(nomeConta);
+    const soNucleo = nuc && nuc !== nomeConta ? _parecencia1(nuc, pb) : 0;
+    // o núcleo sozinho vale um pouco menos: é menos informação
+    return Math.max(inteiro, soNucleo * 0.95);
   }
 
   function matchBillPayments(bills, rows, todayStr, rates, opts = {}) {
@@ -1939,6 +1956,18 @@ const Engine = (() => {
       if (b.active === false) continue;
       const alvo = isForeign(b) ? foreignToAUD(b, rates) : b.amount;
       const venc = b.nextDue;
+      const ciclo = b.frequency === 'custom' ? (b.everyDays || 30)
+        : b.frequency === 'once' ? 60 : cycleDays(b.frequency);
+      const janela = Math.max(4, Math.min(21, Math.floor(ciclo / 2) + 3));
+      // O app às vezes já andou a data (ele marcou "Paguei") e o extrato só chega
+      // depois. Então a ocorrência ANTERIOR também é alvo válido — senão o banco
+      // nunca confirmava o que ele tinha dito.
+      const alvos = [venc];
+      if (venc && b.frequency !== 'once') alvos.push(iso(addDays(venc, -ciclo)));
+      const distancia = (dataStr) => Math.min(...alvos.filter(Boolean)
+        .map(v => Math.abs(daysBetween(dataStr, v))));
+      const alvoDe = (dataStr) => alvos.filter(Boolean)
+        .reduce((best, v) => Math.abs(daysBetween(dataStr, v)) < Math.abs(daysBetween(dataStr, best)) ? v : best, venc);
 
       // candidatos: valor bate (2%/$1) e o nome parece (≥60%)
       let melhor = null;
@@ -1950,7 +1979,11 @@ const Engine = (() => {
         const valorQuase = difValor <= Math.max(5, alvo * 0.12);     // conta em real varia com o câmbio
         if (!((valorBate && p >= 0.5) || (p >= 0.8 && valorQuase))) continue;
         // pontua: nome forte + valor exato + perto do vencimento
-        const perto = venc ? Math.abs(daysBetween(d.date, venc)) : 99;
+        const perto = venc ? distancia(d.date) : 99;
+        // ⛔ Adiantar ou atrasar pode. Trocar de ciclo NÃO pode — foi assim que um
+        // aluguel de agosto marcou o aluguel de setembro como pago. A janela é
+        // metade do ciclo: numa conta semanal, 6 dias; numa mensal, 18.
+        if (venc && perto > janela) continue;
         const nota = p * 100 + (valorBate ? 40 : 0) - Math.min(perto, 60) * 0.5;
         if (!melhor || nota > melhor.nota) melhor = { d, nota, perto, difValor };
       }
@@ -1958,9 +1991,10 @@ const Engine = (() => {
       if (melhor) {
         usados.add(melhor.d.i);
         const d = melhor.d;
-        const dif = venc ? daysBetween(d.date, venc) : 0;   // >0 = pagou ANTES do vencimento
+        const venceu = venc ? alvoDe(d.date) : null;        // qual ocorrência ele pagou
+        const dif = venceu ? daysBetween(d.date, venceu) : 0;   // >0 = pagou ANTES do vencimento
         pagas.push({ id: b.id, name: b.name, esperado: round2(alvo), pago: d.amount,
-          data: d.date, desc: d.desc, vencimento: venc,
+          data: d.date, desc: d.desc, vencimento: venceu,
           dif: round2(d.amount - alvo),
           diasFora: dif,
           adiantada: dif > 0, atrasada: dif < 0,
@@ -1992,6 +2026,102 @@ const Engine = (() => {
       totalPendente: round2(pendentes.reduce((s, x) => s + x.amount, 0)),
       vencidas: pendentes.filter(x => x.vencida),
     };
+  }
+
+  // ==========================================================================
+  //  📒 CADERNO DE DESTINOS — quem recebeu o dinheiro é que manda.
+  //  "Transfer to..." é COMO ele paga, não O QUE ele pagou. Aqui na Austrália
+  //  o aluguel, a comida, o imposto e o dinheiro do cofre saem todos como
+  //  "transferência". Quem separa é o DESTINO, não a palavra.
+  // ==========================================================================
+
+  // mesma chave do comércio: o caderno é um só, seja loja ou pessoa
+  const chaveDestino = chaveComercio;
+
+  // Três tipos de destino:
+  //   'minha'  → conta dele (ANZ, NetBank). Não é gasto: o dinheiro mudou de bolso.
+  //   'conta'  → paga uma conta cadastrada (aluguel, comida, pensão).
+  //   'gasto'  → gasto comum, com categoria.
+  function adivinharDestino(desc, opts = {}) {
+    const bills = opts.bills || [], own = opts.ownAccounts || OWN_ACCOUNTS_DEFAULT;
+    const chave = chaveDestino(desc);
+    const nome = smartBillName(desc) || titleCase(chave);
+    // Dinheiro ENTRANDO não é gasto nenhum: é salário, ajuda ou outra entrada.
+    if (opts.entrada) {
+      const inc = opts.income || {};
+      const bateFonte = inc.source && parecencia(inc.source, desc) >= 0.6;
+      const bateValor = inc.amount && opts.valor
+        && Math.abs(opts.valor - inc.amount) <= Math.max(5, inc.amount * 0.08);
+      for (const a of own) if (parecencia(a, desc) >= 0.75)
+        return { chave, nome, tipo: 'minha', alvo: a, entrada: true, confianca: 'alta' };
+      return { chave, nome, tipo: 'entrada',
+        sub: (bateFonte || bateValor) ? 'salario' : 'outro',
+        confianca: (bateFonte || bateValor) ? 'alta' : 'baixa' };
+    }
+    // 1) é conta minha?
+    for (const a of own) {
+      if (parecencia(a, desc) >= 0.75) return { chave, nome, tipo: 'minha', alvo: a, confianca: 'alta' };
+    }
+    // 2) casa com alguma conta cadastrada?
+    let melhor = null;
+    for (const b of bills) {
+      if (b.active === false) continue;
+      const p = parecencia(b.name, desc, b.aliases);
+      if (p >= 0.6 && (!melhor || p > melhor.p)) melhor = { b, p };
+    }
+    if (melhor) return { chave, nome, tipo: 'conta', billId: melhor.b.id,
+      billName: melhor.b.name, cat: melhor.b.category,
+      ess: melhor.b.essential !== false, confianca: melhor.p >= 0.9 ? 'alta' : 'media' };
+    // 3) gasto comum — a categoria vem de fora (o app é quem tem o dicionário)
+    return { chave, nome, tipo: 'gasto',
+      cat: opts.guessCat ? opts.guessCat(desc) : null, ess: false, confianca: 'baixa' };
+  }
+
+  // Destinos que aparecem no extrato e ainda não estão no caderno.
+  // Devolve já com o palpite pronto, pra ele só conferir.
+  function destinosDoExtrato(rows, caderno, opts = {}) {
+    const mem = caderno || {};
+    const vistos = new Map();
+    for (const r of (rows || [])) {
+      const desc = r.desc || r.note || '';
+      const chave = chaveDestino(desc);
+      if (!chave) continue;
+      if (!vistos.has(chave)) vistos.set(chave, { chave, exemplo: desc, n: 0, total: 0,
+        entrada: r.amount > 0, jaSabido: !!mem[chave] });
+      const v = vistos.get(chave);
+      v.n++; v.total = round2(v.total + Math.abs(r.amount));
+      if (r.amount > 0) v.entrada = true;
+    }
+    const out = [];
+    for (const v of vistos.values()) {
+      const palpite = mem[v.chave]
+        || adivinharDestino(v.exemplo, { ...opts, entrada: v.entrada, valor: v.total / Math.max(1, v.n) });
+      out.push({ ...v, palpite, nome: palpite.nome || titleCase(v.chave) });
+    }
+    // primeiro o que pesa mais, e o desconhecido antes do já sabido
+    out.sort((a, b) => (a.jaSabido - b.jaSabido) || (b.total - a.total));
+    return out;
+  }
+
+  // Aplica o caderno numa linha do extrato
+  function classificarLinha(row, caderno, opts = {}) {
+    const desc = row.desc || row.note || '';
+    const chave = chaveDestino(desc);
+    const d = (caderno || {})[chave] || adivinharDestino(desc, opts);
+    return { ...d, chave };
+  }
+
+  // ==========================================================================
+  //  🔒 PERÍODO DO EXTRATO — o extrato manda nas datas dele e em mais nenhuma.
+  // ==========================================================================
+  function periodoDoExtrato(rows) {
+    const datas = (rows || []).map(r => r.date).filter(Boolean).sort();
+    if (!datas.length) return null;
+    return { de: datas[0], ate: datas[datas.length - 1], n: datas.length };
+  }
+  function dentroDoPeriodo(dataStr, per) {
+    if (!per || !dataStr) return false;
+    return daysBetween(per.de, dataStr) >= 0 && daysBetween(dataStr, per.ate) >= 0;
   }
 
   // ==========================================================================
@@ -2347,7 +2477,9 @@ const Engine = (() => {
     monthlySlice, cycleBills, cascade, vaultWithdrawals, applyVaultMove, PROVISION_MIN,
     ladderState, withdrawCheck, diagnose, xray, DEFAULT_MILESTONES, round2,
     statementSummary, reconcile, parseVaultStatement, provenance, matchBillPayments,
-    confirmarDitos, parecencia, palavrasChave, classificarEntrada, agruparComercio, chaveComercio, comerciosDesconhecidos,
+    confirmarDitos, parecencia, palavrasChave, classificarEntrada,
+    nucleoNome, chaveDestino, adivinharDestino, destinosDoExtrato, classificarLinha,
+    periodoDoExtrato, dentroDoPeriodo, agruparComercio, chaveComercio, comerciosDesconhecidos,
     isForeign, foreignToAUD, impliedRate, fmtForeign, repriceForeign, DEFAULT_RATES, CURRENCY_SYM,
     toDate, iso, addDays, daysBetween, fiscalYearAU, nextPayday, monthlyIncome,
     hourlyRate, billOccurrences, upcomingBills, totalDue, essentialMonthly,
@@ -2959,6 +3091,14 @@ async function loadState() {
   S.rates = get('rates') || { ...Engine.DEFAULT_RATES };
   // o que o app já aprendeu sobre cada comércio: {chave: {cat, ess, nome}}
   S.merchants = get('merchants') || {};
+  // 📒 caderno de destinos: quem recebeu o dinheiro. Migra o antigo caderno de comércio.
+  S.destinos = get('destinos') || {};
+  S.extratos = get('extratos') || [];
+  if (!Object.keys(S.destinos).length && Object.keys(S.merchants).length) {
+    for (const [k, v] of Object.entries(S.merchants))
+      S.destinos[k] = { tipo: 'gasto', cat: v.cat, ess: v.ess, nome: v.nome };
+    await put('kv', { id: 'destinos', v: S.destinos });
+  }
   S.vault = get('vault') || { balance: 0, savings: 0, provisioned: {} };
   if (!S.vault.provisioned) S.vault.provisioned = {};
   // migra o formato antigo: "extra" virou "savings"; os $1.000 do banco saíram do modelo
@@ -3160,6 +3300,105 @@ function renderBoasVindas() {
 // Nenhum número aparece aqui sem estar somado. Linha 4 = 1 − 2 − 3.
 // ============================================================================
 let PN = null;
+// ============================================================================
+// ✏️ TOCAR E CORRIGIR
+// "Aquilo que eu achar que está errado, eu clico em cima e altero ali na hora."
+// Um único modal, usado por todo número editável da tela.
+// ============================================================================
+let EDIT = null;
+function editarNumero(cfg) {
+  // cfg: {titulo, ajuda, valor, sufixo, onSave(v), extra}
+  EDIT = cfg;
+  openModal(`<h1>${cfg.icone || '✏️'} ${esc(cfg.titulo)}</h1>
+    ${cfg.ajuda ? `<p class="muted">${cfg.ajuda}</p>` : ''}
+    ${cfg.extra || ''}
+    <label>${esc(cfg.rotulo || 'Valor')}</label>
+    <input id="ed-v" type="number" inputmode="decimal" step="0.01" value="${cfg.valor ?? ''}">
+    <div class="small">Estava ${money(cfg.valor || 0)}.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarNumero()">Salvar</button>
+    </div>`);
+  setTimeout(() => { const el = $('ed-v'); if (el) { el.focus(); el.select(); } }, 120);
+}
+async function salvarNumero() {
+  const v = +($('ed-v')?.value);
+  if (!isFinite(v)) return toast('Número inválido');
+  const cfg = EDIT; EDIT = null;
+  closeModal();
+  await cfg.onSave(Engine.round2(v));
+  await loadState(); render();
+  toast('Salvo ✓');
+}
+
+// --- quanto entrou desde o último pagamento ---
+function editarEntrou() {
+  const p = PN; if (!p) return;
+  const e = p.entrou;
+  editarNumero({
+    icone: '💰', titulo: 'Quanto entrou de verdade',
+    ajuda: `Desde ${e.desde ? fmtDate(e.desde) : 'o último pagamento'}. Se o número está errado,
+      o certo é jogar o extrato — ele sabe melhor do que nós dois. Mas dá pra corrigir aqui.`,
+    rotulo: 'Total que entrou', valor: e.total,
+    extra: e.itens.length ? `<div class="card" style="background:var(--card2)">${e.itens.map(i =>
+      `<div class="row"><span class="k">${i.tipo === 'salario' ? '💼' : '💵'} ${fmtDate(i.date)}
+        <span class="small">${esc(String(i.source).slice(0, 26))}</span></span>
+        <span class="v">${money(i.amount)}</span></div>`).join('')}</div>` : '',
+    onSave: async (v) => {
+      const dif = Engine.round2(v - e.total);
+      if (Math.abs(dif) < 0.01) return;
+      await put('incomes', { id: uid(), amount: dif, note: 'ajuste feito por mim',
+        date: todayISO(), source: 'ajuste' });
+      await adjustBalance(dif);
+    },
+  });
+}
+
+// --- saldo do ANZ ---
+function editarANZ() {
+  const vs = Engine.vaultState(S.vault);
+  editarNumero({
+    icone: '🏦', titulo: 'Saldo do ANZ',
+    ajuda: 'O número que aparece no app do ANZ, inteiro. Eu separo sozinho o que é poupança tua e o que é provisão de contas.',
+    rotulo: 'Saldo total do ANZ', valor: vs.balance,
+    extra: `<div class="card" style="background:var(--card2)">
+      <div class="row"><span class="k">Poupança tua</span><span class="v pos">${money(vs.savings)}</span></div>
+      <div class="row"><span class="k">De passagem (contas futuras)</span><span class="v warn">${money(vs.committed)}</span></div></div>`,
+    onSave: async (v) => {
+      S.vault = Engine.applyVaultMove(S.vault, { type: 'ajuste', amount: v });
+      await put('kv', { id: 'vault', v: S.vault });
+    },
+  });
+}
+
+// --- valor de uma conta ---
+function editarConta(id) {
+  const b = S.bills.find(x => x.id === id); if (!b) return;
+  editarNumero({
+    icone: '📄', titulo: b.name,
+    ajuda: `Vence ${fmtDate(b.nextDue)} · ${freqLabel(b.frequency, b)}.`,
+    rotulo: 'Valor da conta', valor: b.amount,
+    extra: `<div class="btn-row" style="margin-bottom:4px">
+      <button class="btn-ghost btn-sm" onclick="closeModal();openBillModal('${b.id}')">Editar tudo (data, nome…)</button>
+    </div>`,
+    onSave: async (v) => { b.amount = v; await put('bills', b); },
+  });
+}
+
+// --- valor de um gasto ---
+function editarGasto(id) {
+  const e = S.expenses.find(x => x.id === id); if (!e) return;
+  editarNumero({
+    icone: '🛒', titulo: esc((e.note || e.category || 'gasto').slice(0, 34)),
+    ajuda: `${fmtDate(e.date)} · ${e.category || 'sem categoria'}${e.source === 'extrato' ? ' · veio do banco' : ''}`,
+    rotulo: 'Valor', valor: e.amount,
+    extra: e.source === 'extrato' ? `<div class="warn-box">🏦 Este veio do extrato. Se mudares,
+      o próximo extrato desse período põe o valor do banco de volta.</div>` : '',
+    onSave: async (v) => { const d = Engine.round2(v - e.amount); e.amount = v;
+      await put('expenses', e); await adjustBalance(-d); },
+  });
+}
+
 // O campo do saldo estava enterrado no meio de 11 secções do "Mais" e ele não
 // achou. Agora é um toque na primeira linha da tela inicial — que é onde o
 // número aparece errado, logo é onde ele quer corrigir.
@@ -3234,7 +3473,7 @@ function renderPainel(t) {
     : `🔴 falta ${money(-p.sobra)} pra fechar até ${ate}`;
 
   const L = [
-    { n: 1, ic: '💰', tit: 'Entrou', sub: sub1, v: '+ ' + money(e.total), cor: cor1, vcor: 'var(--tx)', act: "explainPainel('entrou')" },
+    { n: 1, ic: '💰', tit: 'Entrou', sub: sub1 + ' · ✏️', v: '+ ' + money(e.total), cor: cor1, vcor: 'var(--tx)', act: "editarEntrou()" },
     { n: 2, ic: '🔴', tit: 'Pagar contas', sub: sub2, v: '− ' + money(p.pagar), cor: 'var(--tx2)', vcor: 'var(--red)', act: "explainPainel('pagar')" },
     { n: 3, ic: '🔵', tit: 'Guardar no ANZ', sub: sub3, v: '− ' + money(p.guardar), cor: 'var(--tx2)', vcor: 'var(--blue)', act: "explainPainel('guardar')" },
   ];
@@ -3792,7 +4031,7 @@ function billRow(b, grupo) {
       ${cofre ? `<div class="small" style="margin-top:2px;color:${d ? CLR[d.color] : 'var(--amber)'}">🏦 ${money(guardado)} de ${money(b.amount)} guardados no ANZ${d && d.action ? ` · <a onclick="explain('prov:${b.id}')" style="text-decoration:underline">por quê?</a>` : ''}</div>` : ''}
       ${Engine.isForeign(b) ? `<div class="small" style="margin-top:2px;color:var(--blue)">🇧🇷 ${esc(Engine.fmtForeign(b, S.rates))} · o valor em dólar muda com o câmbio</div>` : ''}
     </div>
-    <div class="li-amt">${money(b.amount)}</div>
+    <div class="li-amt" onclick="event.stopPropagation();editarConta('${b.id}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px">${money(b.amount)}</div>
     <div style="display:flex;flex-direction:column;gap:4px">
       <button class="btn-ghost btn-sm" onclick="payBill('${b.id}')">Paguei</button>
       <button class="btn-ghost btn-sm" style="font-size:.72rem;padding:4px 8px" onclick="openQuemPagou('${b.id}')">outro pagou</button>
@@ -4531,7 +4770,7 @@ function renderExpenses() {
     `<div class="list-item" onclick="openExpenseModal('${e.id}')">
       <div class="li-main"><div class="li-title">${esc(e.note || e.category)}</div>
       <div class="li-sub">${fmtDate(e.date)} · <span class="pill cat">${esc(e.category)}</span> ${selo(e)}</div></div>
-      <div class="li-amt">${money(e.amount)}</div></div>`).join('')
+      <div class="li-amt" onclick="event.stopPropagation();editarGasto('${e.id}')" style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px">${money(e.amount)}</div></div>`).join('')
     || '<div class="empty">Nenhum gasto registrado ainda</div>';
 }
 
@@ -5256,24 +5495,223 @@ function showStmtPreview(rows) {
     <button class="btn-primary" style="margin-top:12px" onclick="doImport()">Importar selecionados</button>
     <p class="small" style="margin-top:8px">Importação não mexe no teu saldo atual — são transações que o banco já descontou.</p>`);
 }
+// ============================================================================
+// 🔒 O EXTRATO MANDA NO PERÍODO DELE
+// Antes eu SOMAVA o extrato ao que já havia — por isso os $3.000 entraram duas
+// vezes e um extrato antigo estragava o novo. Agora o extrato REESCREVE as
+// datas que cobre: apaga o que havia lá dentro e põe o que o banco diz.
+// Jogar o mesmo extrato dez vezes dá exatamente o mesmo resultado.
+// ============================================================================
 async function doImport() {
-  let ne = 0, ni = 0;
-  for (const r of stmtRows) {
-    if (!r.include || r.dup) continue;
-    const interno = Engine.transferKind(r.desc, S.ownAccounts) === 'sim';
-    if (r.isExp) { await put('expenses', { id: uid(), amount: Math.abs(r.amount), category: interno ? 'transferências' : r.category,
-      note: r.desc, date: r.date, internal: interno,
-      deductible: interno ? false : Engine.deductibleRule(r.category).deductible, source: 'extrato' }); ne++; }
-    else { await put('incomes', { id: uid(), amount: r.amount, note: r.desc, date: r.date, internal: interno, source: 'extrato' }); ni++; }
+  const linhas = stmtRows.filter(r => r.include);
+  if (!linhas.length) { stmtRows = []; closeModal(); return toast('Nada selecionado'); }
+  const per = Engine.periodoDoExtrato(linhas);
+  await saveSnapshot(`antes do extrato ${per.de} a ${per.ate}`);
+
+  // --- 1) o que existia nessas datas sai, MENOS o que tem foto de recibo ---
+  const noPeriodo = x => Engine.dentroDoPeriodo(x.date, per);
+  const comRecibo = [];
+  let apagados = 0;
+  for (const e of S.expenses.filter(noPeriodo)) {
+    if (e.receiptId) { comRecibo.push(e); continue; }        // foto do recibo não se perde
+    await del('expenses', e.id); apagados++;
   }
-  const imported = stmtRows.filter(r => r.include && !r.dup);
+  for (const i of S.incomes.filter(noPeriodo)) { await del('incomes', i.id); apagados++; }
+  await loadState();
+
+  // --- 2) entra o que o banco diz, classificado pelo caderno de destinos ---
+  const opts = { bills: S.bills, ownAccounts: S.ownAccounts, guessCat };
+  let ne = 0, ni = 0, proCofre = 0, pulados = 0;
+  for (const r of linhas) {
+    const d = Engine.classificarLinha(r, S.destinos, opts);
+    const interno = d.tipo === 'minha';
+    if (r.isExp) {
+      // já tenho um recibo com foto desse valor nesse dia? então o recibo fica
+      const gemeo = comRecibo.find(e => e.date === r.date && Math.abs(e.amount - Math.abs(r.amount)) < 0.02);
+      if (gemeo) { pulados++; continue; }
+      const cat = interno ? 'transferências' : (d.cat || r.category);
+      await put('expenses', { id: uid(), amount: Math.abs(r.amount),
+        category: cat, note: r.desc, date: r.date, internal: interno,
+        destino: d.chave, billId: d.tipo === 'conta' ? d.billId : undefined,
+        kind: interno ? undefined : (d.ess ? 'essencial' : Engine.guessKind(cat, 'extrato')),
+        deductible: interno ? false : Engine.deductibleRule(cat).deductible,
+        source: 'extrato' });
+      ne++;
+      if (interno) proCofre = Engine.round2(proCofre + Math.abs(r.amount));
+    } else {
+      await put('incomes', { id: uid(), amount: r.amount, note: r.desc, date: r.date,
+        internal: interno, destino: d.chave, source: 'extrato' });
+      ni++;
+    }
+  }
+
+  // --- 3) guarda que este período está fechado ---
+  S.extratos = (S.extratos || []).filter(x => !(x.de === per.de && x.ate === per.ate));
+  S.extratos.push({ de: per.de, ate: per.ate, n: linhas.length, em: todayISO() });
+  S.extratos.sort((x, y) => x.de < y.de ? -1 : 1);
+  await put('kv', { id: 'extratos', v: S.extratos });
+
   stmtRows = [];
-  await loadState(); render(); await saveSnapshot('importação');
-  toast(`Importado: ${ne} gastos, ${ni} entradas ✓`);
-  const duvidas = [...new Set(imported.filter(r => Engine.transferKind(r.desc, S.ownAccounts) === 'talvez')
-    .map(r => Engine.smartBillName(r.desc) || r.desc))].slice(0, 8);
-  if (duvidas.length) return askTransfers(duvidas, imported);
-  openAutoFill(window._stmtRaw || imported);
+  await loadState(); render();
+  toast(`${per.de.slice(8)}–${per.ate.slice(8)}: ${ne} gastos, ${ni} entradas ✓`);
+  window._ultimoPeriodo = per;
+  window._proCofre = proCofre;
+  // 4) confere os destinos novos, depois a conferência das contas
+  return revisarDestinos(linhas, opts);
+}
+
+// ============================================================================
+// 📒 CONFERIR OS DESTINOS
+// "Transfer to..." é COMO ele paga, não O QUE pagou. Aqui ele vê pra onde foi
+// cada dinheiro, com o palpite pronto, e corrige o que estiver errado.
+// Uma vez por destino. Depois disso o app já sabe.
+// ============================================================================
+let DEST = [];
+function revisarDestinos(linhas, opts) {
+  DEST = Engine.destinosDoExtrato(linhas, S.destinos, opts).filter(d => !d.jaSabido);
+  if (!DEST.length) return depoisDosDestinos();
+  const ICO = { minha: '🏦', conta: '📄', gasto: '🛒' };
+  const QUE = { minha: 'conta minha — não é gasto', conta: 'paga uma conta', gasto: 'gasto comum' };
+  openModal(`<h1>📒 Pra onde foi o dinheiro?</h1>
+    <p class="muted">${DEST.length} destino${DEST.length !== 1 ? 's' : ''} novo${DEST.length !== 1 ? 's' : ''}.
+      Eu já adivinhei — <b>confere e corrige o que estiver errado</b>. Pergunto uma vez só.</p>
+    <div class="card" style="max-height:52vh;overflow-y:auto">
+      ${DEST.map((d, i) => `
+      <div style="padding:10px 0;border-top:${i ? '1px solid var(--line)' : '0'}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+          <b style="font-size:.92rem">${esc(d.nome)}</b>
+          <span class="small" style="white-space:nowrap">${d.n}× · ${money(d.total)}</span>
+        </div>
+        <div class="small" style="opacity:.7;margin:2px 0 6px">${esc((d.exemplo || '').slice(0, 46))}</div>
+        <select onchange="mudouDestino(${i}, this.value)" style="margin:0;font-size:.85rem">
+          ${d.entrada ? `
+            <option value="entrada" ${d.palpite.tipo === 'entrada' ? 'selected' : ''}>💰 Dinheiro que entrou</option>
+            <option value="minha" ${d.palpite.tipo === 'minha' ? 'selected' : ''}>🏦 Veio de outra conta minha</option>
+          ` : `
+            <option value="minha" ${d.palpite.tipo === 'minha' ? 'selected' : ''}>🏦 Conta minha (ANZ, poupança) — não é gasto</option>
+            <option value="conta" ${d.palpite.tipo === 'conta' ? 'selected' : ''}>📄 Paga uma conta cadastrada</option>
+            <option value="gasto" ${d.palpite.tipo === 'gasto' ? 'selected' : ''}>🛒 Gasto comum</option>
+          `}
+        </select>
+        <div id="dest-x-${i}" style="margin-top:6px">${detalheDestino(i)}</div>
+      </div>`).join('')}
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="salvarDestinos()">Está certo, continuar</button>
+    </div>`);
+}
+
+function detalheDestino(i) {
+  const d = DEST[i], p = d.palpite;
+  if (p.tipo === 'entrada') return `
+    <select onchange="DEST[${i}].palpite.sub=this.value" style="margin:0;font-size:.85rem">
+      <option value="salario" ${p.sub === 'salario' ? 'selected' : ''}>💼 É o meu pagamento do trabalho</option>
+      <option value="ajuda" ${p.sub === 'ajuda' ? 'selected' : ''}>🤝 Ajuda de alguém</option>
+      <option value="outro" ${p.sub === 'outro' ? 'selected' : ''}>💵 Outra entrada</option>
+    </select>
+    <div class="small" style="margin-top:4px">Soma no teu saldo de qualquer jeito.
+      A etiqueta é pra eu saber responder "o meu pagamento caiu?".</div>`;
+  if (p.tipo === 'minha' && d.entrada) return `<div class="small" style="color:var(--blue)">
+    🏦 Veio de outra conta tua — não é dinheiro novo, só mudou de bolso.</div>`;
+  if (p.tipo === 'minha') return `<div class="small" style="color:var(--blue)">
+    🏦 O dinheiro só mudou de bolso. <b>Vai somar no ANZ</b> em vez de contar como gasto.</div>`;
+  if (p.tipo === 'conta') {
+    const ativas = S.bills.filter(b => b.active !== false);
+    return `<select onchange="DEST[${i}].palpite.billId=this.value" style="margin:0;font-size:.85rem">
+      ${ativas.map(b => `<option value="${b.id}" ${p.billId === b.id ? 'selected' : ''}>${esc(b.name)} — ${money(b.amount)}</option>`).join('')}
+    </select>`;
+  }
+  return `<select onchange="DEST[${i}].palpite.cat=this.value" style="margin:0;font-size:.85rem">
+      ${CATS.map(c => `<option ${p.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
+    </select>
+    <label class="check" style="margin-top:6px"><input type="checkbox" ${p.ess ? 'checked' : ''}
+      onchange="DEST[${i}].palpite.ess=this.checked" style="width:auto;transform:scale(1.15)">
+      <span style="font-size:.82rem">É essencial (não é besteira)</span></label>`;
+}
+function mudouDestino(i, tipo) {
+  DEST[i].palpite.tipo = tipo;
+  if (tipo === 'entrada' && !DEST[i].palpite.sub) DEST[i].palpite.sub = 'outro';
+  if (tipo === 'conta' && !DEST[i].palpite.billId) {
+    const a = S.bills.filter(b => b.active !== false)[0];
+    if (a) { DEST[i].palpite.billId = a.id; DEST[i].palpite.cat = a.category; DEST[i].palpite.ess = a.essential !== false; }
+  }
+  $('dest-x-' + i).innerHTML = detalheDestino(i);
+}
+
+async function salvarDestinos() {
+  for (const d of DEST) {
+    const p = d.palpite;
+    const b = p.tipo === 'conta' ? S.bills.find(x => x.id === p.billId) : null;
+    S.destinos[d.chave] = { tipo: p.tipo, sub: p.sub, nome: d.nome,
+      billId: b ? b.id : undefined, billName: b ? b.name : undefined,
+      cat: b ? (b.category || p.cat) : p.cat,
+      ess: b ? b.essential !== false : !!p.ess, em: todayISO() };
+    // ensina o apelido à conta, pra ela casar sozinha no extrato seguinte
+    if (b) { b.aliases = [...new Set([...(b.aliases || []), d.chave])]; await put('bills', b); }
+  }
+  await put('kv', { id: 'destinos', v: S.destinos });
+  await loadState();
+  // reclassifica o que já entrou com o caderno novo
+  await reclassificarPeriodo(window._ultimoPeriodo);
+  DEST = [];
+  depoisDosDestinos();
+}
+
+// aplica o caderno atualizado nas linhas que já foram gravadas
+async function reclassificarPeriodo(per) {
+  if (!per) return;
+  let cofre = 0;
+  for (const e of S.expenses.filter(x => x.source === 'extrato' && Engine.dentroDoPeriodo(x.date, per))) {
+    const d = S.destinos[e.destino || Engine.chaveDestino(e.note || '')];
+    if (!d) continue;
+    const interno = d.tipo === 'minha';
+    const cat = interno ? 'transferências' : (d.cat || e.category);
+    if (e.internal === interno && e.category === cat) { if (interno) cofre += e.amount; continue; }
+    e.internal = interno; e.category = cat;
+    e.billId = d.tipo === 'conta' ? d.billId : undefined;
+    e.kind = interno ? undefined : (d.ess ? 'essencial' : Engine.guessKind(cat, 'extrato'));
+    e.deductible = interno ? false : Engine.deductibleRule(cat).deductible;
+    await put('expenses', e);
+    if (interno) cofre += e.amount;
+  }
+  window._proCofre = Engine.round2(cofre);
+  await loadState(); render();
+}
+
+// ---- o ANZ sobe sozinho com o que saiu da conta principal pra ele ----
+async function depoisDosDestinos() {
+  const per = window._ultimoPeriodo;
+  const foi = Engine.round2(window._proCofre || 0);
+  if (foi > 0.01 && per) {
+    const vs = Engine.vaultState(S.vault);
+    return openModal(`<h1>🏦 Mandaste ${money(foi)} pro ANZ</h1>
+      <p class="muted">O extrato do Commonwealth mostra esse dinheiro saindo da tua conta
+        e indo pro cofre. Não é gasto — só mudou de bolso.</p>
+      <div class="card">
+        <div class="row"><span class="k">ANZ agora no app</span><span class="v">${money(vs.balance)}</span></div>
+        <div class="row"><span class="k">Foi pro ANZ neste extrato</span><span class="v pos">+ ${money(foi)}</span></div>
+        <div class="row" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px">
+          <span class="k"><b>Fica</b></span><span class="v pos"><b>${money(Engine.round2(vs.balance + foi))}</b></span></div>
+      </div>
+      <div class="small">O extrato do Commonwealth não enxerga os juros que o ANZ paga por dentro.
+        De vez em quando confere com o app do ANZ e acerta na mão.</div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal();seguirConferencia()">Já tinha somado</button>
+        <button class="btn-primary" onclick="somarNoCofre(${foi})">Somar no ANZ</button>
+      </div>`);
+  }
+  seguirConferencia();
+}
+async function somarNoCofre(v) {
+  S.vault = Engine.applyVaultMove(S.vault, { type: 'poupanca', amount: v });
+  await put('kv', { id: 'vault', v: S.vault });
+  await loadState(); closeModal(); render();
+  toast(`ANZ: ${money(Engine.vaultState(S.vault).balance)} ✓`);
+  seguirConferencia();
+}
+function seguirConferencia() {
+  const imported = window._stmtRaw || [];
+  openAutoFill(imported);
 }
 
 // ---------- contas fixas detectadas no extrato ----------
@@ -6841,6 +7279,77 @@ function selfTestSuite() {
     bills: BL, vault: V, expenses: [], budgets: {} };
   const D = '2026-01-02';
 
+  // ---- 📒 CADERNO DE DESTINOS: quem recebeu é que manda ----
+  const BILLS_D = [
+    { id: 'd1', name: 'Aluguel — GAP Real Estate', amount: 650, active: true, category: 'moradia', essential: true, frequency: 'weekly', nextDue: '2026-01-05' },
+    { id: 'd2', name: 'ATO — parcela mensal', amount: 1000, active: true, category: 'impostos', essential: true, frequency: 'monthly', nextDue: '2026-02-16' },
+    { id: 'd3', name: 'Vodafone', amount: 45, active: true, category: 'contas', essential: true, frequency: 'monthly', nextDue: '2026-01-20' },
+  ];
+  const dest = (d) => E.adivinharDestino(d, { bills: BILLS_D });
+  t('"transfer" não é categoria — o destino é que manda', () => {
+    const r = dest('Transfer To Gap Real Estate 100346 CommBank app Rent Gap');
+    return (r.tipo === 'conta' && r.billId === 'd1') || JSON.stringify(r);
+  });
+  t('transferência pro ANZ é conta minha, não gasto', () => {
+    const r = dest('Transfer To ANZ Plus Growth Saver');
+    return r.tipo === 'minha' || JSON.stringify(r);
+  });
+  t('o ANZ está na lista de contas dele', () =>
+    E.isInternalTransfer('Transfer To ANZ Plus Growth Saver') || 'guardar dinheiro ainda conta como gasto');
+  t('nome com traço casa pelo núcleo (ATO — parcela = ATO)', () => {
+    const r = dest('Transfer to ATO BPAY 75556');
+    return (r.tipo === 'conta' && r.billId === 'd2') || JSON.stringify(r);
+  });
+  t('destino que ele nunca viu vira gasto comum', () => {
+    const r = dest('SOME RANDOM SHOP 9999');
+    return r.tipo === 'gasto' || JSON.stringify(r);
+  });
+  t('não inventa casamento errado', () => {
+    const r = dest('Transfer to Gap Real Estate');
+    return r.billId !== 'd3' || 'casou Vodafone com o aluguel';
+  });
+  t('caderno aprendido ganha do palpite', () => {
+    const k = E.chaveDestino('Transfer to Other Bank CommBank app');
+    const cad = { [k]: { tipo: 'conta', billId: 'd1' } };
+    const r = E.classificarLinha({ desc: 'Transfer to Other Bank CommBank app' }, cad, { bills: BILLS_D });
+    return r.billId === 'd1' || JSON.stringify(r);
+  });
+  t('mesmo destino com memo diferente cai na mesma chave', () => {
+    const a1 = E.chaveDestino('Transfer to Gap Real Estate 100346 CommBank app Rent Gap');
+    const a2 = E.chaveDestino('Transfer To GAP REAL ESTATE 100346 aluguel');
+    return a1 === a2 || `${a1} ≠ ${a2}`;
+  });
+  // ---- 🔒 PERÍODO DO EXTRATO ----
+  t('sabe o período que o extrato cobre', () => {
+    const p = E.periodoDoExtrato([{ date: '2026-01-05' }, { date: '2026-01-01' }, { date: '2026-01-09' }]);
+    return (p.de === '2026-01-01' && p.ate === '2026-01-09') || JSON.stringify(p);
+  });
+  t('sabe o que está dentro e o que está fora', () => {
+    const p = { de: '2026-01-01', ate: '2026-01-09' };
+    return (E.dentroDoPeriodo('2026-01-05', p) && !E.dentroDoPeriodo('2025-12-31', p)
+      && !E.dentroDoPeriodo('2026-01-10', p)) || 'errou o limite';
+  });
+  // ---- ⛔ extrato antigo não marca conta nova ----
+  t('extrato de mês passado NÃO marca a conta deste mês', () => {
+    const b = { ...BILLS_D[0], nextDue: '2026-02-09' };
+    return E.matchBillPayments([b], [{ date: '2026-01-05', amount: -650, desc: 'Gap Real Estate' }], D, {}).pagas.length === 0
+      || 'marcou paga com extrato velho';
+  });
+  t('mas pagar adiantado dentro do ciclo continua a contar', () => {
+    const b = { ...BILLS_D[0], nextDue: '2026-01-09' };
+    return E.matchBillPayments([b], [{ date: '2026-01-07', amount: -650, desc: 'Gap Real Estate' }], D, {}).pagas.length === 1
+      || 'deixou de ver o pagamento antecipado';
+  });
+  t('conta semanal: 14 dias antes é outra semana, não conta', () => {
+    const b = { ...BILLS_D[0], nextDue: '2026-01-19' };
+    return E.matchBillPayments([b], [{ date: '2026-01-05', amount: -650, desc: 'Gap Real Estate' }], D, {}).pagas.length === 0
+      || 'confundiu duas semanas';
+  });
+  t('conta mensal aceita janela maior que a semanal', () => {
+    const b = { ...BILLS_D[1], nextDue: '2026-02-16' };
+    return E.matchBillPayments([b], [{ date: '2026-02-04', amount: -1000, desc: 'ATO BPAY' }], '2026-02-17', {}).pagas.length === 1
+      || 'apertou demais a conta mensal';
+  });
   // ---- 🏦 O PDF É A MÃE ----
   t('conta vencida NÃO some da soma', () => {
     const b = { ...BL[0], nextDue: '2025-12-20' };
