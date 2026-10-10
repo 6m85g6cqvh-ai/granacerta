@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Magnata Finanças">
 <meta name="theme-color" content="#0d1117">
-<meta name="gc-build" content="202610100313">
+<meta name="gc-build" content="202610100357">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" href="./icon-192.png">
@@ -443,10 +443,15 @@ a{color:var(--blue)}
     </div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="exportForClaude()">🤖 Copiar resumo p/ Claude</button>
-      <button class="btn-ghost" onclick="pickFile('import-file')">📥 Restaurar</button>
+      <button class="btn-ghost" onclick="pickFile('import-file')">📥 Restaurar de ficheiro</button>
     </div>
-    <div class="fab-note">Restaurar procura um ficheiro <b>.json</b> nos Arquivos do iPhone. Se o iPhone
-      oferecer a câmara, toca em <b>Explorar</b> ou <b>Escolher ficheiro</b> lá embaixo na lista.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="openColarBackup()">📋 Restaurar colando o texto</button>
+    </div>
+    <div class="fab-note">Duas formas de restaurar:<br>
+      <b>📥 De ficheiro</b> — procura um <b>.txt</b> ou <b>.json</b> nos Arquivos do iPhone.
+      Se ele oferecer a câmara, toca em <b>Explorar</b> lá embaixo.<br>
+      <b>📋 Colando</b> — se o ficheiro não abre, copia o texto todo e cola aqui. Funciona sempre.</div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="openArrumarSaldo()">🔧 Arrumar o saldo</button>
       <button class="btn-ghost" onclick="exportFiscalCSV()">🧾 CSV recibos (ano fiscal)</button>
@@ -462,7 +467,7 @@ a{color:var(--blue)}
 <input type="file" id="stmt-file" class="fpick" accept="application/pdf,text/csv,application/json,.pdf,.csv,.json" onchange="stmtPicked(this)">
 <input type="file" id="receipt-file" class="fpick" accept="image/*" onchange="receiptPicked(this)">
 <input type="file" id="odo-file" class="fpick" accept="image/*" onchange="odoPicked(this)">
-<input type="file" id="import-file" class="fpick" accept="application/json,text/plain,.json" onchange="importBackup(this)">
+<input type="file" id="import-file" class="fpick" accept="application/json,text/plain,text/*,.json,.txt,.gc" onchange="importBackup(this)">
 
 <!-- ============ MODAIS ============ -->
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
@@ -3399,6 +3404,63 @@ function renderBoasVindas() {
 // ============================================================================
 let PN = null;
 // ============================================================================
+// 📋 RESTAURAR COLANDO
+// O iPhone não sabe abrir .json e ele fica preso no "Salvar em Arquivos".
+// Colar o texto funciona sempre, venha de onde vier.
+// ============================================================================
+function openColarBackup() {
+  openModal(`<h1>📋 Restaurar colando o texto</h1>
+    <p class="muted">Quando o ficheiro não abre no iPhone, este caminho funciona sempre.</p>
+    <div class="card" style="background:var(--card2);font-size:.85rem">
+      <b>Como fazer</b>
+      <div class="small" style="margin-top:6px">
+        1. Abre o ficheiro que te mandaram (toca nele)<br>
+        2. Segura o dedo no texto → <b>Selecionar tudo</b> → <b>Copiar</b><br>
+        3. Volta aqui, segura no campo abaixo → <b>Colar</b>
+      </div>
+    </div>
+    <label>Cola aqui o backup</label>
+    <textarea id="cb-txt" rows="5" placeholder='{"app":"granacerta", ...'
+      style="font-family:monospace;font-size:16px"></textarea>
+    <div id="cb-info" class="small"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="colarBackup()">Restaurar</button>
+    </div>`);
+  setTimeout(() => {
+    const el = $('cb-txt'); if (!el) return;
+    el.addEventListener('input', () => {
+      const n = el.value.length;
+      $('cb-info').textContent = n ? `${(n / 1024).toFixed(0)} KB colados` : '';
+    });
+    el.focus();
+  }, 150);
+}
+
+async function colarBackup() {
+  const txt = ($('cb-txt')?.value || '').trim();
+  if (!txt) return toast('Cola o texto primeiro');
+  let data;
+  try { data = JSON.parse(txt); }
+  catch (e) {
+    return openModal(`<h1>⚠️ O texto veio cortado</h1>
+      <p class="muted">Não consegui ler isso como backup. Quase sempre é texto colado pela metade.</p>
+      <div class="card"><b>Confere:</b>
+        <div class="small" style="margin-top:6px">
+          • o texto tem que começar com <code>{"app":</code><br>
+          • e terminar com <code>}</code><br>
+          • colaste ${(txt.length / 1024).toFixed(0)} KB
+        </div></div>
+      <p class="small">Erro técnico: ${esc(String(e.message).slice(0, 60))}</p>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal()">Fechar</button>
+        <button class="btn-primary" onclick="openColarBackup()">Tentar de novo</button>
+      </div>`);
+  }
+  await restaurarDados(data);
+}
+
+// ============================================================================
 // 📆 O QUE FALTA PAGAR — por mês, com ✅ no que já fechou.
 // A agenda só olha 7 dias. Aqui ele vê novembro, dezembro, tudo.
 // ============================================================================
@@ -5464,11 +5526,42 @@ async function exportBackup(withReceipts) {
 }
 async function importBackup(input) {
   const file = input.files[0]; if (!file) return; input.value = '';
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch (e) { return toast('Não consegui ler esse ficheiro: ' + e.message); }
+  await restaurarDados(data);
+}
+
+// Um caminho só pra restaurar, venha de ficheiro ou de texto colado.
+// Guarda uma cópia antes: restaurar sobrescreve, e isso não pode ser sem volta.
+async function restaurarDados(data) {
+  if (!['granacerta', 'magnata'].includes(String(data?.app || '').toLowerCase()))
+    return toast('Isso não parece um backup deste app');
+  const quando = data.exported ? new Date(data.exported) : null;
+  openModal(`<h1>📥 Restaurar</h1>
+    <p class="muted">Isto substitui o que está no aparelho pelo que vem no backup.
+      Eu guardo uma cópia do atual antes, dá pra voltar atrás.</p>
+    <div class="card">
+      <div class="row"><span class="k">Contas</span><span class="v">${(data.bills || []).length}</span></div>
+      <div class="row"><span class="k">Gastos</span><span class="v">${(data.expenses || []).length}</span></div>
+      <div class="row"><span class="k">Entradas</span><span class="v">${(data.incomes || []).length}</span></div>
+      <div class="row"><span class="k">Saldo da conta</span><span class="v">${money(data.profile?.balance ?? 0)}</span></div>
+      <div class="row"><span class="k">ANZ</span><span class="v">${money(data.vault?.balance ?? 0)}</span></div>
+      ${quando ? `<div class="small" style="margin-top:6px">Backup de ${quando.toLocaleString('pt-BR')}</div>` : ''}
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="aplicarRestauro()">Restaurar</button>
+    </div>`);
+  window._restaurar = data;
+}
+
+async function aplicarRestauro() {
+  const data = window._restaurar; if (!data) return closeModal();
+  window._restaurar = null;
+  closeModal();
   try {
-    const data = JSON.parse(await file.text());
-    // aceita os backups antigos: o app mudou de nome, o ficheiro dele não pode virar lixo
-  if (!['granacerta','magnata'].includes(String(data.app||'').toLowerCase()))
-    return toast('Arquivo não parece um backup deste app');
+    await saveSnapshot('antes de restaurar');
     if (data.profile) await put('kv', { id: 'profile', v: data.profile });
     if (data.funds) await put('kv', { id: 'funds', v: data.funds });
     if (data.budgets) await put('kv', { id: 'budgets', v: data.budgets });
@@ -5477,6 +5570,16 @@ async function importBackup(input) {
     if (data.rates) await put('kv', { id: 'rates', v: data.rates });
     if (data.settings) await put('kv', { id: 'settings', v: data.settings });
     if (data.ownAccounts) await put('kv', { id: 'ownAccounts', v: data.ownAccounts });
+    if (data.destinos) await put('kv', { id: 'destinos', v: data.destinos });
+    if (data.merchants) await put('kv', { id: 'merchants', v: data.merchants });
+    if (data.extratos) await put('kv', { id: 'extratos', v: data.extratos });
+    // o que não vem no backup novo tem que SAIR, senão fica lixo velho misturado
+    if (data.bills) { const ids = new Set(data.bills.map(b => b.id));
+      for (const b of await all('bills')) if (!ids.has(b.id)) await del('bills', b.id); }
+    if (data.expenses) { const ids = new Set(data.expenses.map(e => e.id));
+      for (const e of await all('expenses')) if (!ids.has(e.id)) await del('expenses', e.id); }
+    if (data.incomes) { const ids = new Set(data.incomes.map(i => i.id));
+      for (const i of await all('incomes')) if (!ids.has(i.id)) await del('incomes', i.id); }
     for (const b of data.bills || []) await put('bills', b);
     for (const e of data.expenses || []) await put('expenses', e);
     for (const g of data.goals || []) await put('goals', g);
@@ -5491,9 +5594,22 @@ async function importBackup(input) {
       else { const ex = (await all('receipts')).find(x => x.id === r.id); r.blob = ex?.blob || new Blob(); }
       await put('receipts', r);
     }
-    await loadState(); render(); toast('Backup restaurado ✓');
+    await loadState(); render(); go('hoje');
+    const p = Engine.painel(engineState(), todayISO());
+    openModal(`<h1>✅ Restaurado</h1>
+      <div class="card">
+        <div class="row"><span class="k">Tenho na conta</span><span class="v">${money(p.saldo)}</span></div>
+        <div class="row"><span class="k">Pagar até ${p.ate ? fmtDate(p.ate) : 'o pagamento'}</span><span class="v neg">${money(p.pagar)}</span></div>
+        <div class="row"><span class="k">ANZ</span><span class="v">${money(Engine.vaultState(S.vault).balance)}</span></div>
+        <div class="row" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px">
+          <span class="k"><b>Posso gastar</b></span>
+          <span class="v ${p.sobra >= 0 ? 'pos' : 'neg'}"><b>${money(p.sobra)}</b></span></div>
+      </div>
+      <p class="small">Confere se bate. Qualquer número errado, toca nele e corrige.</p>
+      <button class="btn-primary" onclick="closeModal()">Ver minha tela</button>`);
   } catch (e) { toast('Erro ao restaurar: ' + e.message); }
 }
+
 async function exportForClaude() {
   const t = todayISO();
   const fm = S.profile ? Engine.freeMoney(engineState(), t) : null;
